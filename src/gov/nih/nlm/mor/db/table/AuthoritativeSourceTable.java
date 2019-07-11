@@ -3,38 +3,35 @@ package gov.nih.nlm.mor.db.table;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 
-import gov.nih.nlm.mor.db.row.AuthoritativeSourceRow;
+import gov.nih.nlm.mor.db.rxnorm.Source;
 
 public class AuthoritativeSourceTable {
-	private int primarykey = -1;
-	private int codegenerator = 1;
-	private ArrayList<AuthoritativeSourceRow> authoritativeSourceRows = new ArrayList<AuthoritativeSourceRow>();
+
+	private ArrayList<Source> rows = new ArrayList<Source>();
 	
 	public AuthoritativeSourceTable() {
 		
 	}
 	
 	public void print(PrintWriter pw) {
+//		[DrugAuthoritativeSourceID] [smallint] IDENTITY(1,1) NOT NULL,
+//		[Name] [varchar](50) NOT NULL,
+//		[Description] [varchar](100) NULL,
+//		[CreationUserID] [char](4) NULL,
+//		[CreationDate] [smalldatetime] NULL,
+//		[UpdatedUserID] [char](5) NULL,
+//		[UpdatedDate] [smalldatetime] NULL,
+//		[IsActive] [bit] NULL,
+		
+		for( Source s : rows ) {
+			pw.println(s.getId() + "|" + s.getName() + "|" + s.getDescription() + "|" + s.getCreationUserId() + "|" + 
+			 s.getCreationDate() + "|" + s.getUpdatedUserId() + "|" + s.getUpdatedDate() + "|" + s.getIsActive() );
+		}
 		
 	}
 	
-	public int getPrimarykey() {
-		return primarykey;
-	}
-	public void setPrimarykey(int primarykey) {
-		this.primarykey = primarykey;
-	}
-	public int getCodegenerator() {
-		return codegenerator;
-	}
-	public void setCodegenerator(int codegenerator) {
-		this.codegenerator = codegenerator;
-	}
-	public ArrayList<AuthoritativeSourceRow> getAuthoritativeSourceRows() {
-		return authoritativeSourceRows;
-	}
-	public void setAuthoritativeSourceRows(ArrayList<AuthoritativeSourceRow> authoritativeSourceRows) {
-		this.authoritativeSourceRows = authoritativeSourceRows;
+	public void add(Source s) {
+		rows.add(s);
 	}
 	
 

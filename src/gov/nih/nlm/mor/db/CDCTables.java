@@ -14,12 +14,13 @@ import javax.net.ssl.HttpsURLConnection;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import gov.nih.nlm.mor.db.row.ConceptRow;
-import gov.nih.nlm.mor.db.row.TermRow;
 import gov.nih.nlm.mor.db.rxnorm.Concept;
 import gov.nih.nlm.mor.db.rxnorm.ConceptRelationship;
+import gov.nih.nlm.mor.db.rxnorm.ConceptType;
+import gov.nih.nlm.mor.db.rxnorm.Source;
 import gov.nih.nlm.mor.db.rxnorm.Term;
 import gov.nih.nlm.mor.db.rxnorm.TermRelationship;
+import gov.nih.nlm.mor.db.rxnorm.TermType;
 import gov.nih.nlm.mor.db.table.AuthoritativeSourceTable;
 import gov.nih.nlm.mor.db.table.Concept2ConceptTable;
 import gov.nih.nlm.mor.db.table.ConceptTable;
@@ -30,13 +31,13 @@ import gov.nih.nlm.mor.db.table.TermTypeTable;
 
 public class CDCTables {
 	
-	public AuthoritativeSourceTable authoritatveSourceTable = null;
-	public Concept2ConceptTable concept2ConceptTable = null;
-	public ConceptTable conceptTable = null;
-	public ConceptTypeTable conceptTypeTable = null;
-	public Term2TermTable term2TermTable = null;
-	public TermTable termTable = null;
-	public TermTypeTable termTypeTable = null;
+	public AuthoritativeSourceTable authoritativeSourceTable = new AuthoritativeSourceTable();
+	public Concept2ConceptTable concept2ConceptTable = new Concept2ConceptTable();
+	public ConceptTable conceptTable = new ConceptTable();
+	public ConceptTypeTable conceptTypeTable = new ConceptTypeTable();
+	public Term2TermTable term2TermTable = new Term2TermTable();
+	public TermTable termTable = new TermTable();
+	public TermTypeTable termTypeTable = new TermTypeTable();
 	
 	private PrintWriter authoritativeSourceFile = null;
 	private PrintWriter conceptTypeFile = null;
@@ -47,24 +48,21 @@ public class CDCTables {
 	private PrintWriter concept2conceptFile = null;
 	
 	private final String baseUrl = "https://rxnav.nlm.nih.gov/REST";
-	private final String sourcesUrl = "";
-	private final String brandNameUrl = "/allconcepts.json?tty=IN+PIN+BN";
-	private final String synonymsUrlBegin = baseUrl + "/rxcui";
-	private final String synonymsUrlEnd = "/related?tty=SY";
-	private final String typesUrl = baseUrl + "";
-	private final String drugConceptUrl = "";
 	private final String allConceptsUrl = "https://rxnav.nlm.nih.gov/REST/allconcepts.json?tty=IN";
 	
-	private HashMap<Concept, Integer> class2Id = new HashMap<Concept, Integer>();
+	private HashMap<String, String> sourceMap = new HashMap<String, String>();
+	private HashMap<String, String> termTypeMap = new HashMap<String, String>();
+	private HashMap<String, String> classTypeMap = new HashMap<String, String>();
+	private HashMap<String, ArrayList<String>> class2Parents = new HashMap<String, ArrayList<String>>();
 	
-	private Integer codeGenerator = 1;
+	private Integer codeGenerator = 0;
 //more?
 	
 	public static void main(String[] args) {
 		CDCTables tables = new CDCTables();
 		tables.configure();
 		tables.gather();
-		tables.run();
+		tables.serialize();
 		tables.cleanup();
 	}
 	
@@ -106,14 +104,11 @@ public class CDCTables {
 			e.printStackTrace();
 		}
 		
-		AuthoritativeSourceTable authoritativeSourceTable = new AuthoritativeSourceTable();
-		Concept2ConceptTable concept2ConceptTable = new Concept2ConceptTable();
-		ConceptTable conceptTable = new ConceptTable();
-		ConceptTypeTable conceptTypeTable = new ConceptTypeTable();
-		Term2TermTable term2TermTable = new Term2TermTable();
-		TermTable termTable = new TermTable();
-		TermTypeTable termTypeTable = new TermTypeTable();
+		setAuthoritativeSourceTable();
+		setConceptTypeTable();
+		setTermTypeTable();
 		
+		System.out.println(allConceptsUrl);
 		if( allConcepts != null ) {
 			JSONObject group = null;
 			JSONArray minConceptArray = null;		
@@ -134,7 +129,7 @@ public class CDCTables {
 				concept.setConceptId(++codeGenerator);
 				concept.setSource("RxNorm");
 				concept.setSourceId(rxcui);
-				concept.setClassType("Drug");
+				concept.setClassType(classTypeMap.get("Substance"));
 				
 				Integer conceptId = codeGenerator;
 				
@@ -146,7 +141,7 @@ public class CDCTables {
 				conceptTable.add(concept);
 				
 				term.setName(name);
-				term.setTty("PV"); //this could be IN instead
+				term.setTty(termTypeMap.get("IN")); //this could be IN instead
 				term.setSourceId(rxcui);
 				term.setSource("RxNorm");
 				
@@ -165,6 +160,7 @@ public class CDCTables {
 					e.printStackTrace();
 				}
 				
+				System.out.println("https://rxnav.nlm.nih.gov/REST/rxcui/" + rxcui + "/allrelated.json");
 				if( allRelated != null ) {
 					JSONObject allRelatedGroup = (JSONObject) allRelated.get("allRelatedGroup");
 					JSONArray conceptGroup = (JSONArray) allRelatedGroup.get("conceptGroup");
@@ -174,21 +170,22 @@ public class CDCTables {
 						JSONObject relatedConcept = (JSONObject) conceptGroup.get(j);
 						String relatedType = relatedConcept.get("tty").toString();
 						
-						if( relatedType.equals("PIN") || relatedType.equals("BN") ) {
-							JSONObject relatedProperties = (JSONObject) relatedConcept.get("conceptProperties");
-							if( relatedProperties != null ) {
+						if( (relatedType.equals("PIN") || relatedType.equals("BN")) && !relatedConcept.isNull("conceptProperties") ) {
+							
+								JSONArray relatedProperties = (JSONArray) relatedConcept.get("conceptProperties");
+								JSONObject soleProperty = (JSONObject) relatedProperties.get(0);
 								Term relatedTerm = new Term();
 								
-								String relatedCuiString = relatedProperties.get("rxcui").toString();
-								String relatedName = relatedProperties.get("name").toString();
+								String relatedCuiString = soleProperty.get("rxcui").toString();
+								String relatedName = soleProperty.get("name").toString();
 								
-								term.setId(++codeGenerator);
-								term.setName(relatedName);
-								term.setTty(relatedType);
-								term.setSourceId(relatedCuiString);
-								term.setSource("RxNorm");
+								relatedTerm.setId(++codeGenerator);
+								relatedTerm.setName(relatedName);
+								relatedTerm.setTty(termTypeMap.get(relatedType));
+								relatedTerm.setSourceId(relatedCuiString);
+								relatedTerm.setSource("RxNorm");
 								
-								termTable.add(term);
+								termTable.add(relatedTerm);
 								
 								Integer termId = codeGenerator;
 								
@@ -200,15 +197,15 @@ public class CDCTables {
 								
 								term2TermTable.add(termRel);
 								
-							}
-							
 						}
-						
+							
 					}
+						
 				}
 				
 				//what are we looking for here?  Just UNII it seems
 				//so far
+				System.out.println("https://rxnav.nlm.nih.gov/REST/rxcui/" + rxcui + "/allProperties.json?prop=all");
 				if( allProperties != null ) {
 					JSONObject propConceptGroup = (JSONObject) allProperties.get("propConceptGroup");
 					JSONArray propConcept = (JSONArray) propConceptGroup.get("propConcept");
@@ -221,7 +218,7 @@ public class CDCTables {
 							Term synonym = new Term();
 							synonym.setId(++codeGenerator);					
 							synonym.setName(prop.get("propValue").toString());
-							synonym.setTty("SY");
+							synonym.setTty(termTypeMap.get("SY"));
 							synonym.setSourceId(rxcui);
 							synonym.setSource("RxNorm");
 							
@@ -250,9 +247,11 @@ public class CDCTables {
 					
 				}
 				
+				System.out.println("https://rxnav.nlm.nih.gov/REST/rxclass/class/byRxcui.json?rxcui=" + rxcui + "&relaSource=ATC");
 				if( allClasses != null ) {
 					if( !allClasses.isNull("rxclassDrugInfoList") ) {
-						JSONArray drugInfoList = (JSONArray) allClasses.get("rxclassDrugInfoList");
+						JSONObject rxclassdrugInfoList = (JSONObject) allClasses.get("rxclassDrugInfoList");
+						JSONArray drugInfoList = (JSONArray) rxclassdrugInfoList.get("rxclassDrugInfo");
 						
 						for( int j=0; j < drugInfoList.length(); j++ ) {
 							JSONObject rxclassDrugInfo = (JSONObject) drugInfoList.get(j);
@@ -266,17 +265,121 @@ public class CDCTables {
 								sourceTerm.setName(rxclassMinConceptItem.get("className").toString());
 								sourceTerm.setSourceId(rxclassMinConceptItem.get("classId").toString());
 								sourceTerm.setTty("");
-								sourceTerm.setSource("ATC");
+								sourceTerm.setSource(sourceMap.get("ATC"));
 								
 								termTable.add(sourceTerm);
 								
 								sourceConcept.setConceptId(++codeGenerator);
 								sourceConcept.setPreferredTermId(sourceTermId);
-								sourceConcept.setSource("ATC");
+								sourceConcept.setSource(sourceMap.get("ATC"));
 								sourceConcept.setSourceId(rxclassMinConceptItem.get("classId").toString());
-								sourceConcept.setClassType("Class");
+								sourceConcept.setClassType(classTypeMap.get("Class"));
+								
+								Integer sourceConceptId = codeGenerator;
 								
 								conceptTable.add(sourceConcept);
+								
+								ConceptRelationship conRel = new ConceptRelationship();
+								conRel.setId(++codeGenerator);
+								conRel.setConceptId1(conceptId);
+								conRel.setConceptId2(sourceConceptId);
+								conRel.setRelationship("memberof");
+								
+								concept2ConceptTable.add(conRel);
+								
+								JSONObject classGraph = null;
+								
+								try {
+									classGraph = getresult("https://rxnav.nlm.nih.gov/REST/rxclass/classGraph.json?classId=" +sourceConceptId + "&source=ATC1-4");
+								} catch (IOException e) {
+									// TODO Auto-generated catch block
+									e.printStackTrace();
+								}
+								
+								System.out.println("https://rxnav.nlm.nih.gov/REST/rxclass/classGraph.json?classId=" +sourceConceptId + "&source=ATC1-4");
+								if( classGraph != null && !classGraph.isNull("rxclassGraph") ) {
+									JSONObject rxClassGraph = (JSONObject) classGraph.get("rxclassGraph");
+									if( !rxClassGraph.isNull("rxclassMinConceptItem") && !rxClassGraph.isNull("rxclassEdge") ) {
+										JSONArray classConcepts = (JSONArray) rxClassGraph.get("rxclassMinConceptItem");
+										JSONArray classEdges = (JSONArray) rxClassGraph.get("rxclassEdge");
+										HashMap<String, String> edgeMap = new HashMap<String, String>();
+										HashMap<String, String> conceptMap = new HashMap<String, String>();
+										
+										for( int k=0; k < classConcepts.length(); k++ ) {
+											JSONObject classConcept = (JSONObject) classConcepts.get(k);
+											conceptMap.put(classConcept.get("classId").toString(), classConcept.get("className").toString());
+										}
+										
+										for( int k=0; k < classEdges.length(); k++ ) {
+											JSONObject classEdge = (JSONObject) classEdges.get(k);
+											edgeMap.put(classEdge.get("classId1").toString(), classEdge.get("classId2").toString());
+										}	
+										
+										for( String s : conceptMap.keySet() ) {
+											if( !conceptTable.hasConcept(s, sourceMap.get("ATC")) ) {
+												Concept classConcept = new Concept();
+												classConcept.setConceptId(++codeGenerator);
+												Integer classConceptCode = codeGenerator;
+												classConcept.setSource(sourceMap.get("ATC"));
+												classConcept.setClassType(classTypeMap.get("Class"));
+												classConcept.setSourceId(s);
+												
+												Term classTerm = new Term();
+												classTerm.setId(++codeGenerator);
+												Integer classTermCode = codeGenerator;
+												classTerm.setName(conceptMap.get(s));
+												classTerm.setSource(sourceMap.get("ATC"));
+												classTerm.setSourceId(s);
+												classTerm.setTty("");
+												
+												classConcept.setPreferredTermId(classTermCode);
+												
+												conceptTable.add(classConcept);
+												termTable.add(classTerm);
+												
+												if( edgeMap.containsKey(s) ) {
+													if( !classRelExists(s, edgeMap.get(s)) ) {
+														addClassRelToMap(s, edgeMap.get(s));
+														
+														String parentSourceId = s;
+														String parentName = conceptMap.get(s);
+														
+														Concept parentConcept = new Concept();
+														parentConcept.setConceptId(++codeGenerator);
+														Integer parentConceptId = codeGenerator;
+														parentConcept.setSource(sourceMap.get("ATC"));
+														parentConcept.setSourceId(parentSourceId);
+														parentConcept.setClassType(classTypeMap.get("Class"));
+														
+														Term parentTerm = new Term();
+														parentTerm.setId(++codeGenerator);
+														Integer parentTermCode = codeGenerator;
+														parentTerm.setName(parentName);
+														parentTerm.setSource(sourceMap.get("ATC"));
+														parentTerm.setSourceId(parentSourceId);
+														
+														parentConcept.setPreferredTermId(parentTermCode);
+														
+														ConceptRelationship parentConceptRel = new ConceptRelationship();
+														parentConceptRel.setId(++codeGenerator);
+														parentConceptRel.setConceptId1(classConceptCode);
+														parentConceptRel.setRelationship("isa");
+														parentConceptRel.setConceptId2(parentConceptId);
+														
+														conceptTable.add(parentConcept);
+														termTable.add(parentTerm);
+														concept2ConceptTable.add(parentConceptRel);
+													
+													}
+													
+												}
+												
+											}
+										}
+										
+									}
+									
+								}
 								
 								
 							}
@@ -286,25 +389,109 @@ public class CDCTables {
 					}
 					
 				}
-				
-				
 			}
-			
-			
-			
 		}
-		
-		
 	}
 	
-	private void run() {
-		nlmDrugAuthoritativeSource();
-		nlmDrugConceptType();
-		nlmDrugTermType();
-		nlmDrugTerm();
-		nlmDrugConcept();
-		nlmDrugTerm2Term();
-		nlmConcept2Concept();
+	private void setAuthoritativeSourceTable() {
+		Source s1 = new Source();
+		Source s2 = new Source();
+		Source s3 = new Source();
+		
+		s1.setId(++codeGenerator);
+		s1.setName("RxNorm");
+		sourceMap.put("RxNorm", String.valueOf(codeGenerator) );
+		
+		s2.setId(++codeGenerator);
+		s2.setName("ATC");
+		sourceMap.put("ATC", String.valueOf(codeGenerator));
+		
+		s3.setId(++codeGenerator);
+		s3.setName("ICD");
+		sourceMap.put("ICD", String.valueOf(codeGenerator));
+		
+		authoritativeSourceTable.add(s1);
+		authoritativeSourceTable.add(s2);
+		authoritativeSourceTable.add(s3);
+	}
+	
+	private void setConceptTypeTable() {
+		ConceptType t1 = new ConceptType();
+		ConceptType t2 = new ConceptType();
+		
+		t1.setId(++codeGenerator);
+		t1.setDescription("Substance");
+		classTypeMap.put("Substance", String.valueOf(codeGenerator));
+		
+		t2.setId(++codeGenerator);;
+		t2.setDescription("Class");
+		classTypeMap.put("Class", String.valueOf(codeGenerator));
+		
+		conceptTypeTable.add(t1);
+		conceptTypeTable.add(t2);		
+	}
+	
+	private void setTermTypeTable() {
+		TermType t1 = new TermType();
+		TermType t2 = new TermType();
+		TermType t3 = new TermType();
+		
+		t1.setId(++codeGenerator);
+		t1.setAbbreviation("IN");
+		termTypeMap.put("IN", String.valueOf(codeGenerator));
+		
+		t2.setId(++codeGenerator);
+		t2.setAbbreviation("PIN");
+		termTypeMap.put("IN", String.valueOf(codeGenerator));
+		
+		t3.setId(++codeGenerator);
+		t3.setAbbreviation("BN");
+		termTypeMap.put("BN", String.valueOf(codeGenerator));
+		
+		termTypeTable.add(t1);
+		termTypeTable.add(t2);
+		termTypeTable.add(t3);
+		
+	}
+		
+	private boolean classRelExists(String cls, String classParent ) {
+		boolean exists = false;
+		if( class2Parents.containsKey(cls) ) {
+			ArrayList<String> parents = class2Parents.get(cls);
+			for(String p : parents ) {
+				if( p.equals(classParent) ) {
+					exists = true;
+					break;
+				}
+			}
+		}
+		return exists;
+	}
+	
+	private void addClassRelToMap(String cls, String classParent ) {
+		if( !class2Parents.containsKey(cls) ) {
+			ArrayList<String> parentClasses = new ArrayList<String>();
+			parentClasses.add(classParent);
+			class2Parents.put(cls, parentClasses);
+		}
+		else {
+			ArrayList<String> parentClasses = class2Parents.get(cls);
+			parentClasses.add(classParent);
+			class2Parents.put(cls, parentClasses);
+		}
+	}	
+	
+	
+	private void serialize() {
+		
+		this.authoritativeSourceTable.print(this.authoritativeSourceFile);
+		this.conceptTypeTable.print(this.conceptTypeFile);
+		this.termTypeTable.print(this.termTypeFile);
+		this.termTable.print(this.termFile);
+		this.conceptTable.print(this.conceptFile);
+		this.term2TermTable.print(this.term2termFile);
+		this.concept2ConceptTable.print(this.concept2conceptFile);
+
 	}
 	
 	private void cleanup() {
@@ -315,35 +502,6 @@ public class CDCTables {
 		conceptFile.close();
 		term2termFile.close();
 		concept2conceptFile.close();
-	}
-	
-	private void nlmDrugAuthoritativeSource() {
-		
-		
-	}
-	
-	private void nlmDrugConceptType() {
-		
-	}
-	
-	private void nlmDrugTermType() {
-		
-	}
-	
-	private void nlmDrugTerm() {
-		
-	}
-	
-	private void nlmDrugConcept() {
-		
-	}
-	
-	private void nlmDrugTerm2Term() {
-		
-	}
-
-	private void nlmConcept2Concept() {
-		
 	}
 	
 	public static JSONObject getresult(String URLtoRead) throws IOException {

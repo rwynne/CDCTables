@@ -3,8 +3,6 @@ package gov.nih.nlm.mor.db.table;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 
-import gov.nih.nlm.mor.db.row.Concept2ConceptRow;
-import gov.nih.nlm.mor.db.rxnorm.Concept;
 import gov.nih.nlm.mor.db.rxnorm.ConceptRelationship;
 
 public class Concept2ConceptTable {
@@ -20,7 +18,34 @@ public class Concept2ConceptTable {
 	}	
 	
 	public void print(PrintWriter pw) {
+		/*	[DrugConceptConceptID] [bigint] NOT NULL,
+	[DrugConceptID1] [bigint] NULL,
+	[Relation] [char](50) NULL,
+	[DrugConceptID2] [bigint] NULL,
+	[CreationUserID] [char](4) NULL,
+	[CreationDateTime] [smalldatetime] NULL,
+	[UpdatedUserID] [char](4) NULL,
+	[UpdatedDateTime] [smalldatetime] NULL,
+	[IsActive] [bit] NULL,
+		 * 
+		 */
+		for( ConceptRelationship rel : rows ) {
+			pw.println(rel.getId() + "|" + rel.getConceptId1() + "|" + rel.getRelationship() +
+					"|" + rel.getConceptId2() + "|" + rel.getConceptId2() + "||||||");
+			pw.flush();
+		}
 		
+	}
+	
+	public boolean containsPair(String id1, String rel, String id2) {
+		boolean exists = false;
+		for( ConceptRelationship row : this.rows ) {
+			if( row.getConceptId1().equals(Integer.valueOf(id1)) && row.getConceptId2().equals(Integer.valueOf(id2)) && row.getRelationship().contentEquals(rel) ) {
+				exists = true;
+				break;
+			}
+		}
+		return exists;
 	}
 	
 }
