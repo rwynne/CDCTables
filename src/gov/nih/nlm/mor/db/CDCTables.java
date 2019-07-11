@@ -75,7 +75,7 @@ public class CDCTables {
 		String termPath = "./term.txt";
 		String conceptPath = "./concept.txt";
 		String term2termPath = "./term-term.txt";
-		String concept2conceptPath = "./concept-concept";
+		String concept2conceptPath = "./concept-concept.txt";
 		
 		try {
 			authoritativeSourceFile = new PrintWriter(new File(authoritativePath));
@@ -117,6 +117,12 @@ public class CDCTables {
 			minConceptArray = (JSONArray) group.get("minConcept");
 			for(int i = 0; i < minConceptArray.length(); i++ ) {
 //				HashMap<Concept, ArrayList<Term>> concept2Terms = new HashMap<Concept, ArrayList<Term>>();
+				
+				if( i != 0 && i % 1000 == 0 ) {
+					System.out.println("Processed " + i + " INs of " + minConceptArray.length());
+					break;
+				}
+				
 				Concept concept = new Concept();
 				Term term = new Term();
 				
@@ -143,7 +149,7 @@ public class CDCTables {
 				term.setName(name);
 				term.setTty(termTypeMap.get("IN")); //this could be IN instead
 				term.setSourceId(rxcui);
-				term.setSource("RxNorm");
+				term.setSource(sourceMap.get("RxNorm"));
 				
 				termTable.add(term);
 				
@@ -160,7 +166,7 @@ public class CDCTables {
 					e.printStackTrace();
 				}
 				
-				System.out.println("https://rxnav.nlm.nih.gov/REST/rxcui/" + rxcui + "/allrelated.json");
+//				System.out.println("https://rxnav.nlm.nih.gov/REST/rxcui/" + rxcui + "/allrelated.json");
 				if( allRelated != null ) {
 					JSONObject allRelatedGroup = (JSONObject) allRelated.get("allRelatedGroup");
 					JSONArray conceptGroup = (JSONArray) allRelatedGroup.get("conceptGroup");
@@ -183,7 +189,7 @@ public class CDCTables {
 								relatedTerm.setName(relatedName);
 								relatedTerm.setTty(termTypeMap.get(relatedType));
 								relatedTerm.setSourceId(relatedCuiString);
-								relatedTerm.setSource("RxNorm");
+								relatedTerm.setSource(sourceMap.get("RxNorm"));
 								
 								termTable.add(relatedTerm);
 								
@@ -205,7 +211,7 @@ public class CDCTables {
 				
 				//what are we looking for here?  Just UNII it seems
 				//so far
-				System.out.println("https://rxnav.nlm.nih.gov/REST/rxcui/" + rxcui + "/allProperties.json?prop=all");
+//				System.out.println("https://rxnav.nlm.nih.gov/REST/rxcui/" + rxcui + "/allProperties.json?prop=all");
 				if( allProperties != null ) {
 					JSONObject propConceptGroup = (JSONObject) allProperties.get("propConceptGroup");
 					JSONArray propConcept = (JSONArray) propConceptGroup.get("propConcept");
@@ -220,7 +226,7 @@ public class CDCTables {
 							synonym.setName(prop.get("propValue").toString());
 							synonym.setTty(termTypeMap.get("SY"));
 							synonym.setSourceId(rxcui);
-							synonym.setSource("RxNorm");
+							synonym.setSource(sourceMap.get("RxNorm"));
 							
 							termTable.add(synonym);
 							
@@ -247,7 +253,7 @@ public class CDCTables {
 					
 				}
 				
-				System.out.println("https://rxnav.nlm.nih.gov/REST/rxclass/class/byRxcui.json?rxcui=" + rxcui + "&relaSource=ATC");
+//				System.out.println("https://rxnav.nlm.nih.gov/REST/rxclass/class/byRxcui.json?rxcui=" + rxcui + "&relaSource=ATC");
 				if( allClasses != null ) {
 					if( !allClasses.isNull("rxclassDrugInfoList") ) {
 						JSONObject rxclassdrugInfoList = (JSONObject) allClasses.get("rxclassDrugInfoList");
@@ -290,13 +296,13 @@ public class CDCTables {
 								JSONObject classGraph = null;
 								
 								try {
-									classGraph = getresult("https://rxnav.nlm.nih.gov/REST/rxclass/classGraph.json?classId=" +sourceConceptId + "&source=ATC1-4");
+									classGraph = getresult("https://rxnav.nlm.nih.gov/REST/rxclass/classGraph.json?classId=" + sourceConcept.getSourceId() + "&source=ATC1-4");
 								} catch (IOException e) {
 									// TODO Auto-generated catch block
 									e.printStackTrace();
 								}
 								
-								System.out.println("https://rxnav.nlm.nih.gov/REST/rxclass/classGraph.json?classId=" +sourceConceptId + "&source=ATC1-4");
+								System.out.println("https://rxnav.nlm.nih.gov/REST/rxclass/classGraph.json?classId=" +sourceConcept.getSourceId() + "&source=ATC1-4");
 								if( classGraph != null && !classGraph.isNull("rxclassGraph") ) {
 									JSONObject rxClassGraph = (JSONObject) classGraph.get("rxclassGraph");
 									if( !rxClassGraph.isNull("rxclassMinConceptItem") && !rxClassGraph.isNull("rxclassEdge") ) {
@@ -435,6 +441,8 @@ public class CDCTables {
 		TermType t1 = new TermType();
 		TermType t2 = new TermType();
 		TermType t3 = new TermType();
+		TermType t4 = new TermType();
+		TermType t5 = new TermType();		
 		
 		t1.setId(++codeGenerator);
 		t1.setAbbreviation("IN");
@@ -442,15 +450,24 @@ public class CDCTables {
 		
 		t2.setId(++codeGenerator);
 		t2.setAbbreviation("PIN");
-		termTypeMap.put("IN", String.valueOf(codeGenerator));
+		termTypeMap.put("PIN", String.valueOf(codeGenerator));
 		
 		t3.setId(++codeGenerator);
 		t3.setAbbreviation("BN");
 		termTypeMap.put("BN", String.valueOf(codeGenerator));
 		
+		t4.setId(++codeGenerator);
+		t4.setAbbreviation("MSP");
+		termTypeMap.put("MSP", String.valueOf(codeGenerator));		
+		
+		t5.setId(++codeGenerator);
+		t5.setAbbreviation("SY");
+		termTypeMap.put("SY", String.valueOf(codeGenerator));		
+		
 		termTypeTable.add(t1);
 		termTypeTable.add(t2);
 		termTypeTable.add(t3);
+		termTypeTable.add(t4);		
 		
 	}
 		

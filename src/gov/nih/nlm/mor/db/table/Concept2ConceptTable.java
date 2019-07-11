@@ -31,7 +31,7 @@ public class Concept2ConceptTable {
 		 */
 		for( ConceptRelationship rel : rows ) {
 			pw.println(rel.getId() + "|" + rel.getConceptId1() + "|" + rel.getRelationship() +
-					"|" + rel.getConceptId2() + "|" + rel.getConceptId2() + "||||||");
+					"|" + rel.getConceptId2() + "||||||");
 			pw.flush();
 		}
 		
