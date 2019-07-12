@@ -16,6 +16,27 @@ public class TermTable {
 		rows.add(t);
 	}
 	
+	public boolean hasTerm(String sourceId, String rel, String source) {
+		boolean result = false;
+		for( Term term : rows ) {
+			if( term.getSourceId().equals(sourceId) && term.getTty().equals(rel) && term.getSource().equals(source) ) {
+				result = true;
+				break;
+			}
+		}
+		return result;
+	}	
+	
+	public Term getTerm(String sourceId, String type, String source) {
+		Term result = null;
+		for( Term term : rows ) {
+			if( term.getSourceId().equals(sourceId) && term.getTty().equals(type) && term.getSource().equals(source) ) {
+				result = term;
+			}
+		}
+		return result;
+	}
+	
 	public void print(PrintWriter pw) {
 		/*	[DrugTermID] [bigint] IDENTITY(1,1) NOT NULL,
 	[DrugTermName] [varchar](50) NOT NULL,

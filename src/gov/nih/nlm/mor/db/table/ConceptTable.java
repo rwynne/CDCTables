@@ -30,6 +30,27 @@ public class ConceptTable {
 		return exists;
 	}
 	
+	public Concept getConcept(String s, String source) {
+		Concept concept = null;
+		for( Concept c : rows ) {
+			if( c.getSourceId().equals(s) && c.getSource().equals(source) ) {
+				concept = c;
+				break;
+			}
+		}
+		return concept;
+	}
+	
+	public ArrayList<Concept> getConceptsOfSource(String source) {
+		ArrayList<Concept> list = new ArrayList<Concept>();
+		for( Concept c : rows ) {
+			if( c.getSource().equals(source) ) {
+				list.add(c);
+			}
+		}
+		return list;
+	}
+	
 	public void print(PrintWriter pw) {
 		/*	[DrugConceptID] [bigint] IDENTITY(1,1) NOT NULL,
 	[PreferredTermID] [bigint] NOT NULL,

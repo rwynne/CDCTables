@@ -3,7 +3,7 @@ package gov.nih.nlm.mor.db.rxnorm;
 public class TermRelationship {
 	Integer id = null;
 	Integer termId1 = null;
-	String relationship = null;
+	String relationship = "";
 	Integer termId2 = null;
 	
 	public TermRelationship() {

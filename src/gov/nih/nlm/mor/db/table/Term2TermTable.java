@@ -31,7 +31,7 @@ public class Term2TermTable {
 		 */
 		for( TermRelationship r : rows ) {
 			pw.println(r.getId() + "|" + r.getTermId1() + "|" + r.getRelationship() + 
-					"|" + r.getTermId2() + "||||||");
+					"|" + r.getTermId2() + "|||||");
 		}
 		
 	}

@@ -2,10 +2,10 @@ package gov.nih.nlm.mor.db.rxnorm;
 
 public class Term {
 	Integer id = null;
-	String name = null;
-	String tty = null;
-	String sourceId = null;
-	String source = null;
+	String name = "";
+	String tty = "";
+	String sourceId = "";
+	String source = "";
 	
 	public Integer getId() {
 		return id;

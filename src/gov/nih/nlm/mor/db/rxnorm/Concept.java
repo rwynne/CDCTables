@@ -3,9 +3,9 @@ package gov.nih.nlm.mor.db.rxnorm;
 public class Concept {
 	Integer conceptId = null;
 	Integer preferredTermId = null;
-	String source = null;
-	String sourceId = null;
-	String classType = null;
+	String source = "";
+	String sourceId = "";
+	String classType = "";
 	
 	public Concept() {
 		

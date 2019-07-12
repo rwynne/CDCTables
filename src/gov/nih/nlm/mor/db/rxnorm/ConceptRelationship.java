@@ -3,7 +3,7 @@ package gov.nih.nlm.mor.db.rxnorm;
 public class ConceptRelationship {
 	Integer id = null;
 	Integer conceptId1 = null;
-	String relationship = null;
+	String relationship = "";
 	Integer conceptId2 = null;
 	
 	public ConceptRelationship() {

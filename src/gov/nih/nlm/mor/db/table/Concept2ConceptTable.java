@@ -31,16 +31,16 @@ public class Concept2ConceptTable {
 		 */
 		for( ConceptRelationship rel : rows ) {
 			pw.println(rel.getId() + "|" + rel.getConceptId1() + "|" + rel.getRelationship() +
-					"|" + rel.getConceptId2() + "||||||");
+					"|" + rel.getConceptId2() + "|||||");
 			pw.flush();
 		}
 		
 	}
 	
-	public boolean containsPair(String id1, String rel, String id2) {
+	public boolean containsPair(Integer id1, String rel, Integer id2) {
 		boolean exists = false;
 		for( ConceptRelationship row : this.rows ) {
-			if( row.getConceptId1().equals(Integer.valueOf(id1)) && row.getConceptId2().equals(Integer.valueOf(id2)) && row.getRelationship().contentEquals(rel) ) {
+			if( row.getConceptId1().equals(id1) && row.getConceptId2().equals(id2) && row.getRelationship().contentEquals(rel) ) {
 				exists = true;
 				break;
 			}
