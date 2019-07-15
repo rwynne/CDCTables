@@ -17,6 +17,29 @@ public class Term2TermTable {
 		this.rows.add(r);
 	}
 	
+	public boolean hasPair(Integer c1, String rel, Integer c2) {
+		boolean result = false;
+		for( TermRelationship tRel : rows ) {
+			if( tRel.getTermId1().equals(c1) && tRel.getRelationship().equals(rel) && tRel.getTermId2().equals(c2)) {
+				result = true;
+				break;
+			}
+		}
+		return result;
+	}
+	
+	public TermRelationship getPair(Integer c1, String rel, Integer c2) {
+		TermRelationship resultRel = null;
+		for( TermRelationship tRel : rows ) {
+			if( tRel.getTermId1().equals(c1) && tRel.getRelationship().equals(rel) && tRel.getTermId2().equals(c2)) {
+				resultRel = tRel;
+				break;
+			}
+		}
+		return resultRel;		
+		
+	}
+	
 	public void print(PrintWriter pw) {
 		/*	[DrugTermTermID] [bigint] NOT NULL,
 	[DrugTermID1] [bigint] NULL,

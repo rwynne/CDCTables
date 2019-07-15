@@ -25,6 +25,28 @@ public class TermTable {
 			}
 		}
 		return result;
+	}
+
+	public boolean hasTermByName(String name, String source) {
+		boolean result = false;
+		for( Term term : rows ) {
+			if( term.getName().equals(name) && term.getSource().equals(source) ) {
+				result = true;
+				break;
+			}
+		}
+		return result;
+	}
+	
+	public Term getTermByName(String name, String source) {
+		Term resultTerm = null;
+		for( Term term : rows ) {
+			if( term.getName().equals(name) && term.getSource().equals(source) ) {
+				resultTerm = term;
+				break;
+			}
+		}
+		return resultTerm;
 	}	
 	
 	public Term getTerm(String sourceId, String type, String source) {

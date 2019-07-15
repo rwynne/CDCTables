@@ -53,6 +53,7 @@ public class CDCTables {
 	private final String allClassesUrl = "https://rxnav.nlm.nih.gov/REST/rxclass/allClasses.json?classTypes=ATC1-4";
 	
 	private HashMap<String, ArrayList<String>> rxcui2Misspellings = new HashMap<String, ArrayList<String>>();
+	private HashMap<String, String> rxcui2ProperSpelling = new HashMap<String, String>();
 	private HashMap<String, ArrayList<String>> rxcui2DrugTCodes = new HashMap<String, ArrayList<String>>();
 	private HashMap<String, String> tcode2Description = new HashMap<String, String>();
 	
@@ -175,6 +176,9 @@ public class CDCTables {
 			list.add(misspell);
 			rxcui2Misspellings.put(rxcui, list);
 		}
+		if( !rxcui2ProperSpelling.containsKey(rxcui) ) {
+			rxcui2ProperSpelling.put(rxcui, rxname);
+		}
 	}
 	
 	private void setDrugCodesMap(String rxname, String rxcui, String tcode, String tdesc) {
@@ -197,30 +201,36 @@ public class CDCTables {
 	private void addMisspellings() {
 		for( String rxcui : rxcui2Misspellings.keySet() ) {
 			ArrayList<String> misList = rxcui2Misspellings.get(rxcui);
-			for( String misTerm : misList ) {
-				Term term = new Term();
-				term.setId(++codeGenerator);
-				term.setTty(termTypeMap.get("MSP"));
-				term.setName(misTerm);
-				term.setSource("Misspelling");
-				term.setSourceId("");
-				
-				termTable.add(term);
-				
-				Integer misId = codeGenerator;
-				
-				if( termTable.hasTerm(rxcui, termTypeMap.get("IN"), sourceMap.get("RxNorm")) ) {
-					Term t = termTable.getTerm(rxcui, termTypeMap.get("IN"), sourceMap.get("RxNorm"));
+			String properName = rxcui2ProperSpelling.get(rxcui);
+			Integer properId = null;
+			if( termTable.hasTermByName(properName, sourceMap.get("RxNorm") ) ) {
+				properId = termTable.getTermByName(properName, sourceMap.get("RxNorm")).getId();
+			}
+			if( properId != null ) {
+				for( String misTerm : misList ) {
+					Term term = new Term();
+					term.setId(++codeGenerator);
+					term.setTty(termTypeMap.get("MSP"));
+					term.setName(misTerm);
+					term.setSource(sourceMap.get("Misspelling"));
+					term.setSourceId("");
 					
-					TermRelationship termRel = new TermRelationship();
-					termRel.setId(++codeGenerator);
-					termRel.setTermId1(misId);
-					termRel.setRelationship(termTypeMap.get("MSP"));
-					termRel.setTermId2(t.getId());
+					termTable.add(term);
 					
-					term2TermTable.add(termRel);
+					Integer misId = codeGenerator;
+					
+					if( !term2TermTable.hasPair(misId, "MSP", properId) ) {
+						TermRelationship termRel = new TermRelationship();
+						termRel.setId(++codeGenerator);
+						termRel.setTermId1(misId);
+						termRel.setRelationship("MSP");
+						termRel.setTermId2(properId);
+						
+						term2TermTable.add(termRel);
+					
+					}
+	
 				}
-
 			}
 		}
 		
@@ -235,6 +245,7 @@ public class CDCTables {
 					
 					Term term = new Term();			
 					Concept concept = new Concept();
+					Integer icdId = null;
 					if( !termTable.hasTerm(tcode, "", sourceMap.get("ICD")) &&
 						!conceptTable.hasConcept(tcode, sourceMap.get("ICD"))) {
 						term.setId(++codeGenerator);
@@ -247,16 +258,19 @@ public class CDCTables {
 						concept.setClassType(classTypeMap.get("Class"));
 						concept.setSource(sourceMap.get("ICD"));
 						concept.setSourceId(tcode);
-
+						icdId = codeGenerator;
 						conceptTable.add(concept);
 						termTable.add(term);
 					}
+					else {
+						Concept icdConcept = conceptTable.getConcept(tcode, sourceMap.get("ICD"));
+						icdId = icdConcept.getConceptId();
+					}
 					
 					Concept rxConcept = conceptTable.getConcept(rxcui, sourceMap.get("RxNorm"));
-					if( rxConcept != null ) {
+					if( rxConcept != null && icdId != null ) {
 						Integer rxConceptId = rxConcept.getConceptId();
-						Integer icdId = codeGenerator;
-												
+						
 						ConceptRelationship conRel = new ConceptRelationship();
 						conRel.setId(++codeGenerator);
 						conRel.setConceptId1(rxConceptId);
@@ -289,7 +303,7 @@ public class CDCTables {
 		setConceptTypeTable();
 		setTermTypeTable();
 		
-		System.out.println("allClassesUrl");
+//		System.out.println("allClassesUrl");
 		if( allClasses != null ) {
 			if( !allClasses.isNull("rxclassMinConceptList") ) {
 				JSONObject rxclassMinConceptList = (JSONObject) allClasses.get("rxclassMinConceptList");
@@ -472,7 +486,7 @@ public class CDCTables {
 								termRel.setId(++codeGenerator);
 								termRel.setTermId1(termId);
 								termRel.setTermId2(preferredTermId);
-								termRel.setRelationship(termTypeMap.get(relatedType));
+								termRel.setRelationship(relatedType);
 								
 								term2TermTable.add(termRel);
 								
@@ -509,7 +523,7 @@ public class CDCTables {
 							termRel.setId(++codeGenerator);
 							termRel.setTermId1(synonymId);							
 							termRel.setTermId2(preferredTermId);
-							termRel.setRelationship(termTypeMap.get("SY"));
+							termRel.setRelationship("SY");
 							
 							term2TermTable.add(termRel);
 							
@@ -534,27 +548,28 @@ public class CDCTables {
 						JSONArray drugInfoList = (JSONArray) rxclassdrugInfoList.get("rxclassDrugInfo");					
 						for( int j=0; j < drugInfoList.length(); j++ ) {
 							JSONObject rxclassDrugInfo = (JSONObject) drugInfoList.get(j);
-							if( !rxclassDrugInfo.isNull("rxclassMinConceptItem") ) {
+							if( !rxclassDrugInfo.isNull("rxclassMinConceptItem") && !rxclassDrugInfo.isNull("minConcept") ) {
+								JSONObject minConcept2 = (JSONObject) rxclassDrugInfo.get("minConcept");
 								JSONObject rxclassMinConceptItem = (JSONObject) rxclassDrugInfo.get("rxclassMinConceptItem");
-								String classId = rxclassMinConceptItem.get("classId").toString();
-								if( conceptTable.hasConcept(rxcui, sourceMap.get("RxNorm")) && conceptTable.hasConcept(classId, sourceMap.get("ATC")) ) {
-									Concept c1 = conceptTable.getConcept(rxcui, sourceMap.get("RxNorm"));
-									Concept c2 = conceptTable.getConcept(classId, sourceMap.get("ATC"));
-									if( !concept2ConceptTable.containsPair(c1.getConceptId(), "memberof", c2.getConceptId()) ) {
-										ConceptRelationship conRel = new ConceptRelationship();
-										conRel.setId(++codeGenerator);
-										conRel.setConceptId1(c1.getConceptId());
-										conRel.setRelationship("memberof");
-										conRel.setConceptId2(c1.getConceptId());
-										
-										concept2ConceptTable.add(conRel);
+								String theMinCui = minConcept2.get("rxcui").toString();
+								if( theMinCui.equals(rxcui) ) {
+									String classId = rxclassMinConceptItem.get("classId").toString();
+									if( conceptTable.hasConcept(rxcui, sourceMap.get("RxNorm")) && conceptTable.hasConcept(classId, sourceMap.get("ATC")) ) {
+										Concept c1 = conceptTable.getConcept(rxcui, sourceMap.get("RxNorm"));
+										Concept c2 = conceptTable.getConcept(classId, sourceMap.get("ATC"));
+										if( !concept2ConceptTable.containsPair(c1.getConceptId(), "memberof", c2.getConceptId()) ) {
+											ConceptRelationship conRel = new ConceptRelationship();
+											conRel.setId(++codeGenerator);
+											conRel.setConceptId1(c1.getConceptId());
+											conRel.setRelationship("memberof");
+											conRel.setConceptId2(c2.getConceptId());
+											
+											concept2ConceptTable.add(conRel);
+										}
 									}
 								}
-													
 							}
-						
 						}
-						
 					}
 				}
 			}
@@ -619,22 +634,27 @@ public class CDCTables {
 		
 		t1.setId(++codeGenerator);
 		t1.setAbbreviation("IN");
+		t1.setDescription("Ingredient");
 		termTypeMap.put("IN", String.valueOf(codeGenerator));
 		
 		t2.setId(++codeGenerator);
 		t2.setAbbreviation("PIN");
+		t2.setDescription("Precise Ingredient");
 		termTypeMap.put("PIN", String.valueOf(codeGenerator));
 		
 		t3.setId(++codeGenerator);
 		t3.setAbbreviation("BN");
+		t3.setDescription("Brand Name");
 		termTypeMap.put("BN", String.valueOf(codeGenerator));
 		
 		t4.setId(++codeGenerator);
 		t4.setAbbreviation("MSP");
+		t4.setDescription("Misspelling");
 		termTypeMap.put("MSP", String.valueOf(codeGenerator));		
 		
 		t5.setId(++codeGenerator);
 		t5.setAbbreviation("SY");
+		t5.setDescription("Synonym");
 		termTypeMap.put("SY", String.valueOf(codeGenerator));		
 		
 		termTypeTable.add(t1);
