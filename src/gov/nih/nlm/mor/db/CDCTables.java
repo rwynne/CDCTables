@@ -1,3 +1,10 @@
+/* Robert Wynne, NIH/NLM/LHC
+ * 
+ * Tracking:
+ * 	190712 - first version
+ * 
+ */
+
 package gov.nih.nlm.mor.db;
 
 import java.io.BufferedReader;
@@ -76,6 +83,7 @@ public class CDCTables {
 	private void configure() {
 		//We are going to hardcode these filenames to ensure
 		//deliverable consistency to CDC
+		
 		String authoritativePath = "./authoritative-source.txt";
 		String conceptTypePath = "./concept-type.txt";
 		String termTypePath = "./term-type.txt";
@@ -87,8 +95,14 @@ public class CDCTables {
 		String cui2MisspellingsPath = "./config/filtered_RxNorm-msp.txt";
 		String rx2ICDPath = "./config/rx2ICD.txt";
 
+		System.out.println("[1] Reading configuration files");
+		System.out.print("  - from " + cui2MisspellingsPath); 		
 		readFile(cui2MisspellingsPath, "spell");
+		System.out.println(" ...OK");
+		
+		System.out.print("  - from " + rx2ICDPath);		
 		readFile(rx2ICDPath, "rx2icd");
+		System.out.println(" ...OK");		
 		
 		try {
 			authoritativeSourceFile = new PrintWriter(new File(authoritativePath));
@@ -100,7 +114,7 @@ public class CDCTables {
 			concept2conceptFile = new PrintWriter(new File(concept2conceptPath));
 		}
 		catch(Exception e) {
-			System.out.print("There was an error trying to create one of the table files.");
+			System.err.print("There was an error trying to create one of the table files.");
 			e.printStackTrace();
 		}
 	}
@@ -158,6 +172,7 @@ public class CDCTables {
 				buff.close();
 				file.close();
 			} catch (Exception e) {
+				System.err.println("Error reading the file " + filename);
 				e.printStackTrace();
 			}
 		}				
@@ -304,6 +319,7 @@ public class CDCTables {
 		setTermTypeTable();
 		
 //		System.out.println("allClassesUrl");
+		System.out.println("[2] Fetching ATC Classes");
 		if( allClasses != null ) {
 			if( !allClasses.isNull("rxclassMinConceptList") ) {
 				JSONObject rxclassMinConceptList = (JSONObject) allClasses.get("rxclassMinConceptList");
@@ -337,8 +353,9 @@ public class CDCTables {
 			}
 		}
 		
+		System.out.println("[3] Collecting edges of ATC classes for isa relations");
 		//collect edges for each concept
-		//https://rxnav.nlm.nih.gov/REST/rxclass/classGraph.json?classId=A&source=ATC1-4 - this is the only call I know of to get the edges, and unfortunately no way to specify direct
+		//https://rxnav.nlm.nih.gov/REST/rxclass/classGraph.json?classId=A&source=ATC1-4
 		ArrayList<Concept> conceptList = conceptTable.getConceptsOfSource(sourceMap.get("ATC"));
 		for( int i=0; i < conceptList.size(); i++ ) {
 			Concept concept = conceptList.get(i);
@@ -398,7 +415,8 @@ public class CDCTables {
 			}
 		}
 		
-		System.out.println(allConceptsUrl);
+//		System.out.println(allConceptsUrl);
+		System.out.println("[4] Processing RxNorm substances and asserting relations");
 		if( allConcepts != null ) {
 			JSONObject group = null;
 			JSONArray minConceptArray = null;		
@@ -408,8 +426,8 @@ public class CDCTables {
 			for(int i = 0; i < minConceptArray.length(); i++ ) {
 //				HashMap<Concept, ArrayList<Term>> concept2Terms = new HashMap<Concept, ArrayList<Term>>();
 				
-				if( i != 0 && i % 1000 == 0 ) {
-					System.out.println("Processed " + i + " INs of " + minConceptArray.length());
+				if( i != 0 && i % 500 == 0 ) {
+					System.out.println("  Processed " + i + " substances of " + minConceptArray.length());
 				}
 				
 				JSONObject minConcept = (JSONObject) minConceptArray.get(i);
@@ -575,7 +593,10 @@ public class CDCTables {
 			}
 		}
 		
+		System.out.println("[5] Adding misspellings");
 		addMisspellings();
+		
+		System.out.println("[6] Adding T-codes");
 		addTCodes();
 		
 	}
@@ -667,6 +688,8 @@ public class CDCTables {
 		
 	private void serialize() {
 		
+		System.out.println("[7] Serializing table files");
+		
 		this.authoritativeSourceTable.print(this.authoritativeSourceFile);
 		this.conceptTypeTable.print(this.conceptTypeFile);
 		this.termTypeTable.print(this.termTypeFile);
@@ -678,6 +701,7 @@ public class CDCTables {
 	}
 	
 	private void cleanup() {
+		
 		authoritativeSourceFile.close();
 		conceptTypeFile.close();
 		termTypeFile.close();
