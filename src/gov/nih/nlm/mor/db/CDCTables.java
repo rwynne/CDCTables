@@ -218,8 +218,10 @@ public class CDCTables {
 			ArrayList<String> misList = rxcui2Misspellings.get(rxcui);
 			String properName = rxcui2ProperSpelling.get(rxcui);
 			Integer properId = null;
+			String drugConceptId = null;
 			if( termTable.hasTermByName(properName, sourceMap.get("RxNorm") ) ) {
 				properId = termTable.getTermByName(properName, sourceMap.get("RxNorm")).getId();
+				drugConceptId = termTable.getTermByName(properName, sourceMap.get("RxNorm")).getDrugConceptId();
 			}
 			if( properId != null ) {
 				for( String misTerm : misList ) {
@@ -229,6 +231,9 @@ public class CDCTables {
 					term.setName(misTerm);
 					term.setSource(sourceMap.get("Misspelling"));
 					term.setSourceId("");
+					
+					term.setDrugConceptId(Integer.valueOf(drugConceptId));
+
 					
 					termTable.add(term);
 					
@@ -261,6 +266,7 @@ public class CDCTables {
 					Term term = new Term();			
 					Concept concept = new Concept();
 					Integer icdId = null;
+					Integer conceptId = null;
 					if( !termTable.hasTerm(tcode, "", sourceMap.get("ICD")) &&
 						!conceptTable.hasConcept(tcode, sourceMap.get("ICD"))) {
 						term.setId(++codeGenerator);
@@ -273,7 +279,8 @@ public class CDCTables {
 						concept.setClassType(classTypeMap.get("Class"));
 						concept.setSource(sourceMap.get("ICD"));
 						concept.setSourceId(tcode);
-						icdId = codeGenerator;
+						icdId = conceptId = codeGenerator;
+						term.setDrugConceptId(conceptId);
 						conceptTable.add(concept);
 						termTable.add(term);
 					}
@@ -341,10 +348,13 @@ public class CDCTables {
 						
 						Concept concept = new Concept();
 						concept.setConceptId(++codeGenerator);
+						Integer conceptId = codeGenerator;
 						concept.setPreferredTermId(term.getId());						
 						concept.setClassType(classTypeMap.get("Class"));
 						concept.setSource(sourceMap.get("ATC"));
 						concept.setSourceId(classId);
+						
+						term.setDrugConceptId(conceptId);
 						
 						termTable.add(term);
 						conceptTable.add(concept);					
@@ -448,10 +458,13 @@ public class CDCTables {
 				
 		
 				concept.setConceptId(++codeGenerator);
+				Integer conceptId = codeGenerator;
 				concept.setSource(sourceMap.get("RxNorm"));
 				concept.setSourceId(rxcui);
 				concept.setClassType(classTypeMap.get("Substance"));
-				concept.setPreferredTermId(preferredTermId);				
+				concept.setPreferredTermId(preferredTermId);
+				
+				term.setDrugConceptId(conceptId);
 				
 //				Integer conceptId = codeGenerator;
 				
@@ -496,6 +509,11 @@ public class CDCTables {
 								relatedTerm.setSourceId(relatedCuiString);
 								relatedTerm.setSource(sourceMap.get("RxNorm"));
 								
+								Concept conceptForTerm = conceptTable.getConcept(rxcui, sourceMap.get("RxNorm"));
+								Integer conceptIdForTerm = conceptForTerm.getConceptId();
+								
+								relatedTerm.setDrugConceptId(conceptIdForTerm);
+								
 								termTable.add(relatedTerm);
 								
 								Integer termId = codeGenerator;
@@ -532,6 +550,11 @@ public class CDCTables {
 							synonym.setTty(termTypeMap.get("SY"));
 							synonym.setSourceId(rxcui);
 							synonym.setSource(sourceMap.get("RxNorm"));
+							
+							Concept conceptForTerm = conceptTable.getConcept(rxcui, sourceMap.get("RxNorm"));
+							Integer conceptIdForTerm = conceptForTerm.getConceptId();
+							
+							synonym.setDrugConceptId(conceptIdForTerm);
 							
 							termTable.add(synonym);
 							

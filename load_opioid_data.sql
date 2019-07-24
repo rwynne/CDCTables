@@ -55,7 +55,8 @@ CREATE TABLE NLMDrugTerm (
 	CreationDate datetime,
 	UpdatedUserID char(5),
 	UpdatedDate datetime,
-	IsActive tinyint(1)
+	IsActive tinyint(1),
+	DrugConceptID bigint
 ) ENGINE=MyISAM CHARACTER SET utf8;
 
 CREATE INDEX DT_DRUGTERMNAME ON NLMDrugTerm(DrugTermName);

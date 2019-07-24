@@ -6,6 +6,7 @@ public class Term {
 	String tty = "";
 	String sourceId = "";
 	String source = "";
+	String drugConceptId = "";	
 	
 	public Integer getId() {
 		return id;
@@ -46,6 +47,14 @@ public class Term {
 	public void setSource(String source) {
 		this.source = source;
 	}
+	
+	public String getDrugConceptId() {
+		return drugConceptId;
+	}
+
+	public void setDrugConceptId(Integer sourceId) {
+		this.drugConceptId = String.valueOf(sourceId);
+	}	
 
 	public Term() {
 		

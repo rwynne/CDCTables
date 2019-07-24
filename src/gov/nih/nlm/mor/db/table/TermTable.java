@@ -70,12 +70,13 @@ public class TermTable {
 	[UpdatedUserID] [char](5) NULL,
 	[UpdatedDate] [smalldatetime] NULL,
 	[IsActive] [bit] NULL,
+	190717: ++[DrugConceptID] [bigint] NULL	
 		 * 
 		 */
 		
 		for( Term t : rows ) {
 			pw.println(t.getId() + "|" + t.getName() + "|" + t.getTty() + 
-					"|" + t.getSourceId() + "|" + t.getSource() + "|||||");
+					"|" + t.getSourceId() + "|" + t.getSource() + "||||||" + t.getDrugConceptId());
 			pw.flush();
 		}
 		
