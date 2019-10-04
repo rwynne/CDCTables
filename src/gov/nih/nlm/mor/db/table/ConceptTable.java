@@ -3,9 +3,8 @@ package gov.nih.nlm.mor.db.table;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 
-import org.json.JSONObject;
-
 import gov.nih.nlm.mor.db.rxnorm.Concept;
+import gov.nih.nlm.mor.db.rxnorm.Term;
 
 public class ConceptTable {
 
@@ -19,6 +18,19 @@ public class ConceptTable {
 		rows.add(c);
 	}
 	
+	public Concept getDrugConceptForName(String drugName, TermTable table) {
+		Concept c = null;
+		ArrayList<Term> terms = table.getTerms();
+		for( Term term : terms ) {
+			if( term.getName().equalsIgnoreCase(drugName) ) {
+				String conceptId = term.getDrugConceptId();
+				c = getConceptById(Integer.valueOf(conceptId));
+				if( c.getClassType().equals("Substance")) return c;
+			}
+		}
+		return c;
+	}
+	
 	public boolean hasConcept(String s, String source) {
 		boolean exists = false;
 		for(Concept c : rows ) {
@@ -28,6 +40,15 @@ public class ConceptTable {
 			}
 		}
 		return exists;
+	}
+	
+	public Concept getConceptById(Integer id) {
+		for( Concept c : rows ) {
+			if( c.getConceptId().equals(id) ) {
+				return c;
+			}
+		}
+		return null;
 	}
 	
 	public Concept getConcept(String s, String source) {
