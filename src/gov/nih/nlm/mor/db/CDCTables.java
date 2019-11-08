@@ -909,15 +909,32 @@ public class CDCTables {
 							term2TermTable.add(termRel);
 							
 						}
-// TBD
-//						else if( propName.equals("UNII_CODE") ) {
-//							Term uniiCode = new Term();
-//							uniiCode.setId(++codeGenerator);
-//							uniiCode.setName(prop.getString("propValue").toString());
-//							uniiCode.setTty("UNII_CODE");
-//							
-//							
-//						}							
+// 191107 - Decision to include
+						else if( propName.equals("UNII_CODE") ) {
+							Term uniiCode = new Term();
+							uniiCode.setId(++codeGenerator);
+							uniiCode.setName(prop.getString("propValue").toString());
+							uniiCode.setTty(termTypeMap.get("UNII"));
+							uniiCode.setSourceId(prop.getString("propValue").toString());
+							uniiCode.setSource(sourceMap.get("FDA"));
+							
+							Concept conceptForTerm = conceptTable.getConcept(rxcui, sourceMap.get("RxNorm"));
+							Integer conceptIdForTerm = conceptForTerm.getConceptId();
+							
+							uniiCode.setDrugConceptId(conceptIdForTerm);
+							
+							termTable.add(uniiCode);
+							
+							Integer uniiId = codeGenerator;
+							
+							TermRelationship uniiRel = new TermRelationship();
+							uniiRel.setId(++codeGenerator);
+							uniiRel.setTermId1(uniiId);
+							uniiRel.setTermId2(preferredTermId);
+							uniiRel.setRelationship("UNII");
+							
+							term2TermTable.add(uniiRel);
+						}							
 					}
 					
 				}
@@ -976,7 +993,8 @@ public class CDCTables {
 		Source s3 = new Source();
 		Source s4 = new Source();
 		Source s5 = new Source();
-		Source s6 = new Source();		
+		Source s6 = new Source();
+		Source s7 = new Source();
 		
 		s1.setId(++codeGenerator);
 		s1.setName("RxNorm");
@@ -1000,14 +1018,19 @@ public class CDCTables {
 		
 		s6.setId(++codeGenerator);
 		s6.setName("DEA");
-		sourceMap.put("DEA", String.valueOf(codeGenerator));		
+		sourceMap.put("DEA", String.valueOf(codeGenerator));
+	
+		s7.setId(++codeGenerator);
+		s7.setName("FDA");
+		sourceMap.put("FDA", String.valueOf(codeGenerator));
 		
 		authoritativeSourceTable.add(s1);
 		authoritativeSourceTable.add(s2);
 		authoritativeSourceTable.add(s3);
 		authoritativeSourceTable.add(s4);
 		authoritativeSourceTable.add(s5);
-		authoritativeSourceTable.add(s6);		
+		authoritativeSourceTable.add(s6);
+		authoritativeSourceTable.add(s7);				
 	}
 	
 	private void setConceptTypeTable() {
@@ -1033,6 +1056,7 @@ public class CDCTables {
 		TermType t4 = new TermType();
 		TermType t5 = new TermType();		
 		TermType t6 = new TermType();
+		TermType t7 = new TermType();
 		
 		t1.setId(++codeGenerator);
 		t1.setAbbreviation("IN");
@@ -1063,6 +1087,11 @@ public class CDCTables {
 		t6.setAbbreviation("PV");
 		t6.setDescription("Principal Variant");
 		termTypeMap.put("PV", String.valueOf(codeGenerator));
+
+		t6.setId(++codeGenerator);
+		t6.setAbbreviation("UNII");
+		t6.setDescription("Unique Ingredient Identifier");
+		termTypeMap.put("UNII", String.valueOf(codeGenerator));		
 		
 		termTypeTable.add(t1);
 		termTypeTable.add(t2);
