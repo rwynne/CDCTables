@@ -11,7 +11,7 @@ package gov.nih.nlm.mor.db.rxnorm;
 	[IsActive] [bit] NULL,
  */
 public class TermType {
-	private Integer id = null;
+	private Double id = null;
 	private String abbreviation = "";
 	private String description = "";
 	private String creationUserId = "";
@@ -24,11 +24,11 @@ public class TermType {
 		
 	}
 
-	public Integer getId() {
+	public Double getId() {
 		return id;
 	}
 
-	public void setId(Integer id) {
+	public void setId(Double id) {
 		this.id = id;
 	}
 

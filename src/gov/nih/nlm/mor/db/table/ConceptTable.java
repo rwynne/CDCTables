@@ -24,7 +24,7 @@ public class ConceptTable {
 		for( Term term : terms ) {
 			if( term.getName().equalsIgnoreCase(drugName) ) {
 				String conceptId = term.getDrugConceptId();
-				c = getConceptById(Integer.valueOf(conceptId));
+				c = getConceptById(Double.valueOf(conceptId));
 				if( c.getClassType().equals("Substance")) return c;
 			}
 		}
@@ -42,7 +42,7 @@ public class ConceptTable {
 		return exists;
 	}
 	
-	public Concept getConceptById(Integer id) {
+	public Concept getConceptById(Double id) {
 		for( Concept c : rows ) {
 			if( c.getConceptId().equals(id) ) {
 				return c;
@@ -62,16 +62,16 @@ public class ConceptTable {
 		return concept;
 	}
 	
-	public Concept getConceptByTerm(String s, String source) {
-		Concept concept = null;
-		for( Concept c: rows ) {
-			if( c.getPreferredTermId().equals(s) && c.getSource().equals(source) ) {
-				concept = c;
-				break;
-			}
-		}
-		return concept;
-	}
+//	public Concept getConceptByTerm(String s, String source) {
+//		Concept concept = null;
+//		for( Concept c: rows ) {
+//			if( c.getPreferredTermId().equals(s) && c.getSource().equals(source) ) {
+//				concept = c;
+//				break;
+//			}
+//		}
+//		return concept;
+//	}
 	
 	public ArrayList<Concept> getConceptsOfSource(String source) {
 		ArrayList<Concept> list = new ArrayList<Concept>();

@@ -7,14 +7,20 @@ package gov.nih.nlm.mor.db;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.File;
+import java.io.OutputStreamWriter;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -23,12 +29,14 @@ import org.json.JSONObject;
 
 public class SetConfig {
 	
-	final String url = "https://rxnav.nlm.nih.gov/REST/rxcui.json?name=";
+	final String url = "https://rxnavstage.nlm.nih.gov/REST/rxcui.json?name=";
 	final String urlParams = "&srclist=rxnorm&allsrc=0&search=0";
 	
-	final String inUrl = "https://rxnav.nlm.nih.gov/REST/rxcui/";
+	final String inUrl = "https://rxnavstage.nlm.nih.gov/REST/rxcui/";
 	final String inUrlParams = "/related.json?tty=IN";
 	public ArrayList<String> substances = new ArrayList<String>();
+	public ArrayList<String[]> spellings = new ArrayList<String[]>();
+	private PrintWriter pw = null;
 	
 	public static void main(String args[]) {
 		SetConfig config = new SetConfig();
@@ -36,13 +44,32 @@ public class SetConfig {
 	}
 	
 	public void run(String filename) {
+		try {
+			pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(new File("./substance-misspellings.txt")),StandardCharsets.UTF_8),true);
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			System.err.print("Cannot create the printwriter");
+			e.printStackTrace();
+		}		
 		readFile(filename);
-		for( String substance : substances ) {
+//		ArrayList<String> res = new ArrayList<String>();
+//		for(String cui : substances) {
+//			ArrayList<String> names = returnInNames(cui);
+//			Collections.sort(names);
+//			int size = names.size();
+//			for(int j=0; j < size; j++) {
+//				res.add(names.get(j) + "|" + cui);
+//			}
+//		}
+//		Collections.sort(res);
+//		for( String r : res ) {
+//			System.out.println(r);
+//		}
+		for( String[] spelling : spellings ) {
 //			if( substance.equalsIgnoreCase("Yellow fever vaccine")) { 
 //				System.out.println("HALT");
 //			}
-			System.out.print(substance + "\t");
-			ArrayList<String> cuis = returnRxCodes(substance);
+			ArrayList<String> cuis = returnRxCodes(spelling[1]);
 // This will print PINs (e.g., anyhdrous terms) if existing
 //			for(int i=0; i < cuis.size(); i++) {
 //				System.out.print(cuis.get(i));
@@ -54,11 +81,12 @@ public class SetConfig {
 				ArrayList<String> inCuis = returnInCodes(cui);
 				int size = inCuis.size();
 				for(int j=0; j < size; j++) {
-					System.out.print(inCuis.get(j) + "|");
+					pw.println(spelling[1] + "|" + inCuis.get(j) + "|" + spelling[0]);
 				}
 			}
-			System.out.println();
+			pw.flush();
 		}
+		pw.close();
 	}
 	
 	public ArrayList<String> returnInCodes(String cui) {
@@ -99,6 +127,44 @@ public class SetConfig {
 		return codes;
 	}
 	
+	public ArrayList<String> returnInNames(String cui) {
+		ArrayList<String> names = new ArrayList<String>();
+		
+		JSONObject result = null;
+		try {
+			String cuiUrl = inUrl + cui + inUrlParams;
+			result = getresult(cuiUrl);
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+		
+		if( result != null ) {
+			if( result.has("relatedGroup")) {
+				JSONObject relatedGroup = result.getJSONObject("relatedGroup");
+				if( relatedGroup.has("conceptGroup")) {
+					JSONArray arr = relatedGroup.getJSONArray("conceptGroup");
+					for(int i=0; i < arr.length(); i++) {
+						JSONObject val = arr.getJSONObject(i);
+						if( val.getString("tty").equals("IN") ) {
+							if( val.has("conceptProperties")) {
+								JSONArray conceptProperties = val.getJSONArray("conceptProperties");
+								for(int j=0; j < conceptProperties.length(); j++) {
+									JSONObject o = conceptProperties.getJSONObject(j);
+									if( o.has("rxcui")) {
+										String inCui = o.getString("name");
+										names.add(inCui);
+									}									
+									
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		return names;
+	}	
+	
 	public ArrayList<String> returnRxCodes(String s) {
 		
 		ArrayList<String> cuis = new ArrayList<String>();
@@ -127,7 +193,7 @@ public class SetConfig {
 		}
 		
 		return cuis;
-	}
+	}	
 	
 	public void readFile(String filename) { 
 		FileReader file = null;
@@ -142,7 +208,9 @@ public class SetConfig {
 					eof = true;
 				else {
 					line = line.trim();
-					substances.add(line);
+//					substances.add(line);
+					String[] pair = line.split("\\|");
+					spellings.add(pair);
 				}
 			}
 		} catch (Exception e) {

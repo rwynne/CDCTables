@@ -1,18 +1,18 @@
 package gov.nih.nlm.mor.db.rxnorm;
 
 public class Term {
-	Integer id = null;
+	Double id = null;
 	String name = "";
 	String tty = "";
 	String sourceId = "";
 	String source = "";
 	String drugConceptId = "";	
 	
-	public Integer getId() {
+	public Double getId() {
 		return id;
 	}
 
-	public void setId(Integer id) {
+	public void setId(Double id) {
 		this.id = id;
 	}
 
@@ -52,7 +52,7 @@ public class Term {
 		return drugConceptId;
 	}
 
-	public void setDrugConceptId(Integer sourceId) {
+	public void setDrugConceptId(Double sourceId) {
 		this.drugConceptId = String.valueOf(sourceId);
 	}	
 

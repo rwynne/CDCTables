@@ -49,16 +49,16 @@ public class TermTable {
 		return resultTerm;
 	}	
 	
-	public Term getTermByNameAndType(String name, String type, String source) {
-		Term resultTerm = null;
-		for( Term term : rows ) {
-			if( term.getName().equalsIgnoreCase(name) && term.getTty().equals(type) && term.getSource().equals(source) ) {
-				resultTerm = term;
-				break;
-			}
-		}
-		return resultTerm;
-	}	
+//	public Term getTermByNameAndType(String name, String type, String source) {
+//		Term resultTerm = null;
+//		for( Term term : rows ) {
+//			if( term.getName().equalsIgnoreCase(name) && term.getTty().equals(type) && term.getSource().equals(source) ) {
+//				resultTerm = term;
+//				break;
+//			}
+//		}
+//		return resultTerm;
+//	}	
 	
 	public Term getTerm(String sourceId, String type, String source) {
 		Term result = null;

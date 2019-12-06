@@ -1,8 +1,8 @@
 package gov.nih.nlm.mor.db.rxnorm;
 
 public class Concept {
-	Integer conceptId = null;
-	Integer preferredTermId = null;
+	Double conceptId = null;
+	Double preferredTermId = null;
 	String source = "";
 	String sourceId = "";
 	String classType = "";
@@ -11,19 +11,19 @@ public class Concept {
 		
 	}
 
-	public Integer getConceptId() {
+	public Double getConceptId() {
 		return conceptId;
 	}
 
-	public void setConceptId(Integer conceptId) {
+	public void setConceptId(Double conceptId) {
 		this.conceptId = conceptId;
 	}
 
-	public Integer getPreferredTermId() {
+	public Double getPreferredTermId() {
 		return preferredTermId;
 	}
 
-	public void setPreferredTermId(Integer preferredTermId) {
+	public void setPreferredTermId(Double preferredTermId) {
 		this.preferredTermId = preferredTermId;
 	}
 
@@ -50,6 +50,6 @@ public class Concept {
 	public void setClassType(String classType) {
 		this.classType = classType;
 	}
-	
+
 
 }
