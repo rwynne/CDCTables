@@ -15,6 +15,7 @@ import static com.jayway.restassured.RestAssured.given;
 
 import java.util.ArrayList;
 
+@SuppressWarnings("unused")
 public class WalkHierarchyTestCase {
 
 	//String username = System.getProperty("username"); 

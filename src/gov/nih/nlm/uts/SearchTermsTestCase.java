@@ -1,7 +1,4 @@
 package gov.nih.nlm.uts;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.JsonPath;
@@ -14,8 +11,6 @@ import gov.nih.nlm.uts.SearchResult;
 import com.jayway.jsonpath.spi.mapper.JacksonMappingProvider;
 
 import static com.jayway.restassured.RestAssured.given;
-import static com.jayway.restassured.path.json.JsonPath.with;
-import static com.jayway.jsonpath.JsonPath.read;
 
 /*This example allows you to search terms in the UMLS
 Examples are at https://github.com/jayway/rest-assured/tree/master/examples/rest-assured-itest-java/src/test/java/com/jayway/restassured/itest/java
@@ -40,6 +35,7 @@ public class SearchTermsTestCase {
 	String tgt = ticketClient.getTgt();
 	
 
+	@SuppressWarnings("unused")
 	public void SearchTerm() throws Exception {
 		
 	version = System.getProperty("version") == null ? "current": System.getProperty("version");

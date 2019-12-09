@@ -11,7 +11,7 @@ package gov.nih.nlm.mor.db.rxnorm;
 	[IsActive] [bit] NULL,
  */
 public class Source {
-	private Double id = null;
+	private Integer id = null;
 	private String name = "";
 	private String description = "";
 	private String creationUserId = "";
@@ -24,11 +24,11 @@ public class Source {
 		
 	}
 
-	public Double getId() {
+	public Integer getId() {
 		return id;
 	}
 
-	public void setId(Double id) {
+	public void setId(Integer id) {
 		this.id = id;
 	}
 

@@ -2,6 +2,12 @@
  * The purpose of this class is to build
  * the ICD-10 hierarchy configuration file with
  * the UTS API
+ * 
+ * In order to run this, you will need to apply
+ * for a free UTS account.  Within the profile of your
+ * account you'll find an apikey.  This should be passed in as
+ * a parameter to the JVM as:
+ * 		> java -jar CDCTables*-withdependencies.jar -Dapikey=4f128796-9241-406a-8131-00b698cf3134
  */
 package gov.nih.nlm.mor.db;
 

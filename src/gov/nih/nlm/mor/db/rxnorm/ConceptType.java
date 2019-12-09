@@ -10,7 +10,7 @@ package gov.nih.nlm.mor.db.rxnorm;
  * 
  */
 public class ConceptType {
-	private Double id = null;
+	private Integer id = null;
 	private String description = "";
 	private String creationDateTime = "";
 	private String creationUserId = "";
@@ -22,11 +22,11 @@ public class ConceptType {
 		
 	}
 
-	public Double getId() {
+	public Integer getId() {
 		return id;
 	}
 
-	public void setId(Double id) {
+	public void setId(Integer id) {
 		this.id = id;
 	}
 

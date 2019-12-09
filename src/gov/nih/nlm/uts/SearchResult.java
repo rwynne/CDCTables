@@ -1,5 +1,4 @@
 package gov.nih.nlm.uts;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 
 public class SearchResult {
@@ -31,21 +30,25 @@ public class SearchResult {
 	}
 
 	//setters
+    @SuppressWarnings("unused")
 	private void setUi(String ui) {
 		
 		this.ui = ui;
 	}
 	
+    @SuppressWarnings("unused")
 	private void setName(String name) {
 		
 		this.name = name;
 	}
 	
+    @SuppressWarnings("unused")
 	private void setUri(String uri) {
 		
 		this.uri = uri;
 	}
 	
+    @SuppressWarnings("unused")
 	private void setRootSource(String rootSource) {
 		
 		this.rootSource = rootSource;

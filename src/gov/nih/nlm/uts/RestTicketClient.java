@@ -5,6 +5,7 @@ import com.jayway.restassured.response.Headers;
 import com.jayway.restassured.response.Response;
 import org.apache.log4j.*;
 
+@SuppressWarnings("unused")
 public class RestTicketClient {
 	
 	private String tgt;

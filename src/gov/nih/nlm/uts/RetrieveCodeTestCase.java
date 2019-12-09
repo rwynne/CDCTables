@@ -10,7 +10,7 @@ import com.jayway.restassured.RestAssured;
 import com.jayway.restassured.response.Response;
 
 import static com.jayway.restassured.RestAssured.given;
-import static org.apache.commons.lang.StringUtils.join;
+
 
 
 public class RetrieveCodeTestCase {

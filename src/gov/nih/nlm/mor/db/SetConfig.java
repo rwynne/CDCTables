@@ -14,7 +14,6 @@ import java.io.OutputStreamWriter;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.PrintStream;
 import java.io.PrintWriter;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -27,12 +26,13 @@ import javax.net.ssl.HttpsURLConnection;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+@SuppressWarnings("unused")
 public class SetConfig {
 	
-	final String url = "https://rxnavstage.nlm.nih.gov/REST/rxcui.json?name=";
+	final String url = "https://rxnav.nlm.nih.gov/REST/rxcui.json?name=";
 	final String urlParams = "&srclist=rxnorm&allsrc=0&search=0";
 	
-	final String inUrl = "https://rxnavstage.nlm.nih.gov/REST/rxcui/";
+	final String inUrl = "https://rxnav.nlm.nih.gov/REST/rxcui/";
 	final String inUrlParams = "/related.json?tty=IN";
 	public ArrayList<String> substances = new ArrayList<String>();
 	public ArrayList<String[]> spellings = new ArrayList<String[]>();

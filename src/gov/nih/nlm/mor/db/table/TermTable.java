@@ -31,8 +31,7 @@ public class TermTable {
 		boolean result = false;
 		for( Term term : rows ) {
 			if( term.getName().equalsIgnoreCase(name) && term.getSource().equals(source) ) {
-				result = true;
-				break;
+				return true;
 			}
 		}
 		return result;
@@ -42,23 +41,11 @@ public class TermTable {
 		Term resultTerm = null;
 		for( Term term : rows ) {
 			if( term.getName().equalsIgnoreCase(name) && term.getSource().equals(source) ) {
-				resultTerm = term;
-				break;
+				return term;
 			}
 		}
 		return resultTerm;
 	}	
-	
-//	public Term getTermByNameAndType(String name, String type, String source) {
-//		Term resultTerm = null;
-//		for( Term term : rows ) {
-//			if( term.getName().equalsIgnoreCase(name) && term.getTty().equals(type) && term.getSource().equals(source) ) {
-//				resultTerm = term;
-//				break;
-//			}
-//		}
-//		return resultTerm;
-//	}	
 	
 	public Term getTerm(String sourceId, String type, String source) {
 		Term result = null;

@@ -1,28 +1,28 @@
 package gov.nih.nlm.mor.db.rxnorm;
 
 public class ConceptRelationship {
-	Double id = null;
-	Double conceptId1 = null;
+	Integer id = null;
+	Integer conceptId1 = null;
 	String relationship = "";
-	Double conceptId2 = null;
+	Integer conceptId2 = null;
 	
 	public ConceptRelationship() {
 		
 	}
 
-	public Double getId() {
+	public Integer getId() {
 		return id;
 	}
 
-	public void setId(Double id) {
+	public void setId(Integer id) {
 		this.id = id;
 	}
 
-	public Double getConceptId1() {
+	public Integer getConceptId1() {
 		return conceptId1;
 	}
 
-	public void setConceptId1(Double conceptId1) {
+	public void setConceptId1(Integer conceptId1) {
 		this.conceptId1 = conceptId1;
 	}
 
@@ -34,11 +34,11 @@ public class ConceptRelationship {
 		this.relationship = relationship;
 	}
 
-	public Double getConceptId2() {
+	public Integer getConceptId2() {
 		return conceptId2;
 	}
 
-	public void setConceptId2(Double conceptId2) {
+	public void setConceptId2(Integer conceptId2) {
 		this.conceptId2 = conceptId2;
 	}
 }

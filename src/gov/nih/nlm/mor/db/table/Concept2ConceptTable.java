@@ -37,7 +37,7 @@ public class Concept2ConceptTable {
 		
 	}
 	
-	public boolean containsPair(Double id1, String rel, Double id2) {
+	public boolean containsPair(Integer id1, String rel, Integer id2) {
 		boolean exists = false;
 		for( ConceptRelationship row : this.rows ) {
 			if( row.getConceptId1().equals(id1) && row.getConceptId2().equals(id2) && row.getRelationship().contentEquals(rel) ) {

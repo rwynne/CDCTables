@@ -98,48 +98,56 @@ public class AtomLite {
     	
     	return this.descendants;
     }
-
+    
+    @SuppressWarnings("unused")
     private void setUi(String ui) {
 		
 		this.ui = ui;
 	}
 	
+    @SuppressWarnings("unused")
 	private void setTermType(String termType){
 		
 		this.termType = termType;
 	}
 	
+    @SuppressWarnings("unused")
 	private void setName(String name) {
 		
 		this.name = name;
 	}
 	
+    @SuppressWarnings("unused")
 	private void setLanguage (String language) {
 		
 		this.language = language;
 	}
 
-	
+    @SuppressWarnings("unused")
 	private void setObsolete (boolean obsolete) {
 		
 		this.obsolete = obsolete;
 	}
 	
+    @SuppressWarnings("unused")
 	private void setRootSource(String rootSource) {
 		
 		this.rootSource = rootSource;
 	}
 	
+    @SuppressWarnings("unused")
 	private void setSuppressible (boolean suppressible) {
 		
 		this.suppressible = suppressible;
 	}
 	
+    @SuppressWarnings("unused")
 	private void setParents (String parents) {
 		
 		this.parents = parents;
 	}
 	
+    @SuppressWarnings("unused")
 	private void setChildren (String children) {
 		
 		this.children = children;

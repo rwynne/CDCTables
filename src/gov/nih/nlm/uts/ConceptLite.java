@@ -58,16 +58,19 @@ public class ConceptLite {
 		return this.defaultPreferredAtom;
 	}
 	
+    @SuppressWarnings("unused")
 	private void setAtoms(String atoms) {
 		
 		this.atoms = atoms;
 	}
 	
+    @SuppressWarnings("unused")	
 	private void setUi(String ui) {
 		
 		this.ui = ui;
 	}
 	
+    @SuppressWarnings("unused")    
 	private void setName(String name){
 		
 		this.name=name;
@@ -78,16 +81,19 @@ public class ConceptLite {
 		this.semanticTypes = stys;
 	}
 	
+    @SuppressWarnings("unused")    
 	private void setDefinitions (String definitions) {
 		
 		this.definitions = definitions;
 	}
 	
+    @SuppressWarnings("unused")    
 	private void setRelations (String relations) {
 		
 		this.relations = relations;
 	}
 	
+    @SuppressWarnings("unused")    
 	private void setDefaultPreferredAtom(String defaultPreferredAtom) {
 		
 		this.defaultPreferredAtom = defaultPreferredAtom;

@@ -3,7 +3,10 @@
  * Tracking:
  * 	190712 - first version
  *  191009 - addition of DEA and NFLIS content
- * 
+ *  191108 - addition of UNIIS
+ *  	- fix to multiple BNs for a substance so not just the first is added
+ *  	- principal variant fix
+ *  191206 - addition of T-codes and hierarchy, from ICD-10, and associate rx substances
  */
 
 package gov.nih.nlm.mor.db;
@@ -70,9 +73,9 @@ public class CDCTables {
 	private HashMap<String, ArrayList<String>> rxcui2Misspellings = new HashMap<String, ArrayList<String>>();
 	private HashMap<String, String> rxcui2ProperSpelling = new HashMap<String, String>();
 	
-	private HashMap<String, ArrayList<String>> rxcui2DrugTCodes = new HashMap<String, ArrayList<String>>();
-	private HashMap<String, String> tcode2Description = new HashMap<String, String>();
-	private HashMap<String, ArrayList<String>> tcode2Rxcuis = new HashMap<String, ArrayList<String>>();
+//	private HashMap<String, ArrayList<String>> rxcui2DrugTCodes = new HashMap<String, ArrayList<String>>();
+//	private HashMap<String, String> tcode2Description = new HashMap<String, String>();
+//	private HashMap<String, ArrayList<String>> tcode2Rxcuis = new HashMap<String, ArrayList<String>>();
 	
 	private HashMap<IcdConcept, ArrayList<IcdConcept>> icdHierarchy = new HashMap<IcdConcept, ArrayList<IcdConcept>>();
 	
@@ -89,7 +92,11 @@ public class CDCTables {
 	private HashMap<String, String> termTypeMap = new HashMap<String, String>();
 	private HashMap<String, String> classTypeMap = new HashMap<String, String>();
 	
-	private Double codeGenerator = Double.valueOf("0");
+	
+	private Integer codeGenerator = (int) 0;
+	private Integer misspellingCount = (int) 0;
+	Integer count = (int) 0;	
+
 	
 	public static void main(String[] args) {
 		CDCTables tables = new CDCTables();
@@ -118,7 +125,6 @@ public class CDCTables {
 		String cui2MisspellingsPath = "./config/substance-mispellings.txt";
 		String icdHierarchy = "./config/10-par-chd-rels.txt";
 		String tcode2RxPath = "./config/tcode-map.txt";
-		// almost ready.. String icd2Rx = "./config/tcode-rxcui.txt"
 		String nflisPath = "./config/nflis-2018-and-2019.txt";
 		String deaPath = "./config/dea-2018.txt";
 
@@ -341,6 +347,7 @@ public class CDCTables {
 	}
 	
 	private void setMisspellingMap(String rxname, String rxcui, String misspell) {
+		misspellingCount++;
 		if( rxcui2Misspellings.containsKey(rxcui) ) {
 			ArrayList<String> list = rxcui2Misspellings.get(rxcui);
 			if( !list.contains(misspell) ) {
@@ -370,102 +377,60 @@ public class CDCTables {
 		}
 	}
 	
-//	private void setDrugCodesMap(String rxname, String rxcui, String tcode, String tdesc) {
-//		if( !tcode2Description.containsKey(tcode) && !tdesc.isEmpty() ) {
-//			tcode2Description.put(tcode, tdesc);
-//		}
-//		
-//		if( !rxcui2DrugTCodes.containsKey(rxcui) && !tcode.isEmpty()) {
-//			ArrayList<String> list = new ArrayList<String>();
-//			list.add(tcode);
-//			rxcui2DrugTCodes.put(rxcui, list);
-//		}
-//		else if( rxcui2DrugTCodes.containsKey(rxcui) && !tcode.isEmpty() ) {
-//			ArrayList<String> list = rxcui2DrugTCodes.get(rxcui);
-//			list.add(tcode);
-//			rxcui2DrugTCodes.put(rxcui, list);
-//		}
-//	}
-	
 	private void addMisspellings() {
-		Double count = new Double(0);
-		Double total = Double.valueOf(String.valueOf(rxcui2Misspellings.keySet().size()));
-		for( String rxcui : rxcui2Misspellings.keySet() ) {
-			if( count % 10000 == 0) {
-				System.out.println(  "Added " + count + "misspellings of " + total );
-			}
-			ArrayList<String> misList = rxcui2Misspellings.get(rxcui);
-			String properName = rxcui2ProperSpelling.get(rxcui);
-			Double properId = null;
+		
+		rxcui2Misspellings.keySet().stream().forEach(x -> {
+			ArrayList<String> misList = rxcui2Misspellings.get(x);
+			String properName = rxcui2ProperSpelling.get(x);
+			Term properSpelling = null;
+			Integer properId = null;
 			String drugConceptId = null;
-			if( termTable.hasTermByName(properName, sourceMap.get("RxNorm") ) ) {
+			if( termTable.hasTermByName(properName, sourceMap.get("RxNorm")) ) {
+				properSpelling = termTable.getTermByName(properName, sourceMap.get("RxNorm"));
 				properId = termTable.getTermByName(properName, sourceMap.get("RxNorm")).getId();
-				drugConceptId = termTable.getTermByName(properName, sourceMap.get("RxNorm")).getDrugConceptId();
+				drugConceptId = termTable.getTermByName(properName, sourceMap.get("RxNorm")).getDrugConceptId();				
 			}
+			final String drugConceptIdFin = drugConceptId;
+			final Term properSpellingFin = properSpelling;
+			final Integer properIdFin = properId;
 			if( properId != null ) {
-				for( String misTerm : misList ) {
+				misList.stream().forEach(y -> {
 					Term term = new Term();
 					term.setId(++codeGenerator);
 					term.setTty(termTypeMap.get("MSP"));
-					term.setName(misTerm);
+					term.setName(y);
 					term.setSource(sourceMap.get("Misspelling"));
 					term.setSourceId("");
 					
-					term.setDrugConceptId(Double.valueOf(drugConceptId));
+					term.setDrugConceptId(Integer.valueOf(drugConceptIdFin));
 					
 					termTable.add(term);
 					
-					Double misId = codeGenerator;
+					Integer misId = codeGenerator;
 					
-					if( !term2TermTable.hasPair(misId, "MSP", properId) ) {
+					if( !term2TermTable.hasPair(y, "MSP", properSpellingFin.getName(), null) ) {
 						TermRelationship termRel = new TermRelationship();
 						termRel.setId(++codeGenerator);
 						termRel.setTermId1(misId);
 						termRel.setRelationship("MSP");
-						termRel.setTermId2(properId);
+						termRel.setTermId2(properIdFin);
 						
 						term2TermTable.add(termRel);
-					
-					}
-	
-				}
+						count++;
+					}					
+				});
+				
 			}
-		}
-		
+		});
+	
 	}
-//	
-//	private void setDrugCodesMap(String tcode, String tcodeName, ArrayList<String> cuiList ) {
-//		
-//		if( !tcode2Description.containsKey(tcode) && !tcodeName.isEmpty() ) {
-//			tcode2Description.put(tcode, tcodeName);
-//		}
-//		
-//		tcode2Rxcuis.put(tcode, cuiList);
-//		
-//		for(String rxcui : cuiList ) {
-//			if( !rxcui2DrugTCodes.containsKey(rxcui) && !tcode.isEmpty()) {
-//				ArrayList<String> list = new ArrayList<String>();
-//				list.add(tcode);
-//				rxcui2DrugTCodes.put(rxcui, list);
-//			}
-//			else if( rxcui2DrugTCodes.containsKey(rxcui) && !tcode.isEmpty() ) {
-//				ArrayList<String> list = rxcui2DrugTCodes.get(rxcui);
-//				list.add(tcode);
-//				rxcui2DrugTCodes.put(rxcui, list);
-//			}			 
-//		}
-//		
-//	}
-//		
-	
-	
 	
 	private void addTCodes() {
 		
 		
 //		for(String tcode : tcode2Description.keySet() ) {
-		Double size = Double.valueOf(String.valueOf(icdConceptsWithCuis.size()));
-		Double count = Double.valueOf("0");
+		Integer size = Integer.valueOf(String.valueOf(icdConceptsWithCuis.size()));
+		Integer count = Integer.valueOf("0");
 		for(IcdConcept icd : icdConceptsWithCuis ) {
 			count++;
 			if( count % 100 == 0 ) {
@@ -477,11 +442,12 @@ public class CDCTables {
 			//add a class and term for the tocode
 			Term term = new Term();			
 			Concept concept = new Concept();
-			Double icdId = null;
-			Double conceptId = null;
+			@SuppressWarnings("unused")
+			Integer icdId = null;
+			Integer conceptId = null;
 			if( !termTable.hasTerm(tcode, "", sourceMap.get("ICD")) &&
 				!conceptTable.hasConcept(tcode, sourceMap.get("ICD"))) {
-				System.out.println("Creating a ICD10 code for CM(?) " + icd.getCode() + " (" + icd.getName() + ")");
+				System.out.println("Creating a ICD10 code for CM(?) " + icd.getCode() + " (" + icd.getName() + ")");  //debug
 				term.setId(++codeGenerator);
 				term.setName(tcodeName);
 				term.setSource(sourceMap.get("ICD"));
@@ -518,8 +484,8 @@ public class CDCTables {
 			
 			Concept rxConcept = conceptTable.getConcept(rxcui, sourceMap.get("RxNorm"));
 			if( rxConcept != null && c != null ) {
-				Double icdConceptId = c.getConceptId();				
-				Double rxConceptId = rxConcept.getConceptId();
+				Integer icdConceptId = c.getConceptId();				
+				Integer rxConceptId = rxConcept.getConceptId();
 				
 				ConceptRelationship conRel = new ConceptRelationship();
 				conRel.setId(++codeGenerator);
@@ -534,59 +500,6 @@ public class CDCTables {
 	
 	}
 		
-		
-		
-		
-//		for( String rxcui : rxcui2DrugTCodes.keySet() ) {
-//			ArrayList<String> tList = rxcui2DrugTCodes.get(rxcui);
-//			for( String tcode : tList ) {
-//				if( tcode2Description.containsKey(tcode) ) {
-//					String name = tcode2Description.get(tcode);
-//					
-//					Term term = new Term();			
-//					Concept concept = new Concept();
-//					Double icdId = null;
-//					Double conceptId = null;
-//					if( !termTable.hasTerm(tcode, "", sourceMap.get("ICD")) &&
-//						!conceptTable.hasConcept(tcode, sourceMap.get("ICD"))) {
-//						term.setId(++codeGenerator);
-//						term.setName(name);
-//						term.setSource(sourceMap.get("ICD"));
-//						term.setSourceId(tcode);
-//						term.setTty("");
-//						concept.setConceptId(++codeGenerator);
-//						concept.setPreferredTermId(term.getId());
-//						concept.setClassType(classTypeMap.get("Class"));
-//						concept.setSource(sourceMap.get("ICD"));
-//						concept.setSourceId(tcode);
-//						icdId = conceptId = codeGenerator;
-//						term.setDrugConceptId(conceptId);
-//						conceptTable.add(concept);
-//						termTable.add(term);
-//					}
-//					else {
-//						Concept icdConcept = conceptTable.getConcept(tcode, sourceMap.get("ICD"));
-//						icdId = icdConcept.getConceptId();
-//					}
-//					
-//					Concept rxConcept = conceptTable.getConcept(rxcui, sourceMap.get("RxNorm"));
-//					if( rxConcept != null && icdId != null ) {
-//						Double rxConceptId = rxConcept.getConceptId();
-//						
-//						ConceptRelationship conRel = new ConceptRelationship();
-//						conRel.setId(++codeGenerator);
-//						conRel.setConceptId1(rxConceptId);
-//						conRel.setRelationship("memberof");
-//						conRel.setConceptId2(icdId);
-//						
-//						concept2ConceptTable.add(conRel);
-//					}
-//					
-//				}
-//			}
-//		}
-// }
-	
 	private void addNFLIS() {
 		
 		for( NFLISCategory category : nflisCategory2Substance.keySet() ) {
@@ -651,7 +564,7 @@ public class CDCTables {
 					synonym.setDrugConceptId(concept.getConceptId());
 					termTable.add(synonym);
 					
-					if( !term2TermTable.hasPair(synonym.getId(), termTypeMap.get("SY"), preferredTerm.getId()) ) {
+					if( !term2TermTable.hasPair(synonym.getName(), termTypeMap.get("SY"), preferredTerm.getName(), sourceMap.get("NFLIS")) ) {
 						TermRelationship termRel = new TermRelationship();
 						termRel.setId(++codeGenerator);
 						termRel.setTermId1(synonym.getId());
@@ -666,7 +579,7 @@ public class CDCTables {
 					if( conceptTable.hasConcept(cui, sourceMap.get("RxNorm")) ) {
 						Concept rxConcept = conceptTable.getConcept(cui, sourceMap.get("RxNorm"));
 						if( rxConcept != null && concept != null ) {
-							Double rxConceptId = rxConcept.getConceptId();
+							Integer rxConceptId = rxConcept.getConceptId();
 							
 							ConceptRelationship conRel = new ConceptRelationship();
 							conRel.setId(++codeGenerator);
@@ -768,7 +681,7 @@ public class CDCTables {
 				
 				Concept narcoticConcept = substance.isNarcotic() ? narcConcept : nonNarcConcept;  
 				if( !concept2ConceptTable.containsPair(concept.getConceptId(), "memberof", narcoticConcept.getConceptId())) {
-					Double substanceId = concept.getConceptId();
+					Integer substanceId = concept.getConceptId();
 					
 					ConceptRelationship conRel = new ConceptRelationship();
 					conRel.setId(++codeGenerator);
@@ -789,7 +702,7 @@ public class CDCTables {
 					synonym.setDrugConceptId(concept.getConceptId());
 					termTable.add(synonym);
 					
-					if( !term2TermTable.hasPair(synonym.getId(), termTypeMap.get("SY"), preferredTerm.getId()) ) {
+					if( !term2TermTable.hasPair(synonym.getName(), termTypeMap.get("SY"), preferredTerm.getName(), sourceMap.get("DEA"))  ) {
 						TermRelationship termRel = new TermRelationship();
 						termRel.setId(++codeGenerator);
 						termRel.setTermId1(synonym.getId());
@@ -804,7 +717,7 @@ public class CDCTables {
 					if(conceptTable.hasConcept(cui, sourceMap.get("RxNorm")) ) {
 						Concept rxConcept = conceptTable.getConcept(cui, sourceMap.get("RxNorm"));
 						if( rxConcept != null && concept != null ) {
-							Double rxConceptId = rxConcept.getConceptId();
+							Integer rxConceptId = rxConcept.getConceptId();
 							
 							ConceptRelationship conRel = new ConceptRelationship();
 							conRel.setId(++codeGenerator);
@@ -865,7 +778,7 @@ public class CDCTables {
 						
 						Concept concept = new Concept();
 						concept.setConceptId(++codeGenerator);
-						Double conceptId = codeGenerator;
+						Integer conceptId = codeGenerator;
 						concept.setPreferredTermId(term.getId());						
 						concept.setClassType(classTypeMap.get("Class"));
 						concept.setSource(sourceMap.get("ATC"));
@@ -913,8 +826,8 @@ public class CDCTables {
 							JSONObject edge = (JSONObject) edgeArray.get(j);
 							String classId1 = edge.get("classId1").toString();
 							String classId2 = edge.get("classId2").toString();
-							Double classIndex1 = null;
-							Double classIndex2 = null;
+							Integer classIndex1 = null;
+							Integer classIndex2 = null;
 							if( conceptTable.hasConcept(classId1, sourceMap.get("ATC")) ) {
 								Concept c = conceptTable.getConcept(classId1, sourceMap.get("ATC"));
 								if( c != null) {
@@ -966,7 +879,7 @@ public class CDCTables {
 				Term term = new Term();
 
 				term.setId(++codeGenerator);
-				Double preferredTermId = codeGenerator;				
+				Integer preferredTermId = codeGenerator;				
 				term.setName(name);
 				term.setTty(termTypeMap.get(type)); //this could be IN instead
 				term.setSourceId(rxcui);
@@ -974,7 +887,7 @@ public class CDCTables {
 				
 		
 				concept.setConceptId(++codeGenerator);
-				Double conceptId = codeGenerator;
+				Integer conceptId = codeGenerator;
 				concept.setSource(sourceMap.get("RxNorm"));
 				concept.setSourceId(rxcui);
 				concept.setClassType(classTypeMap.get("Substance"));
@@ -1029,13 +942,13 @@ public class CDCTables {
 									relatedTerm.setSource(sourceMap.get("RxNorm"));
 									
 									Concept conceptForTerm = conceptTable.getConcept(rxcui, sourceMap.get("RxNorm"));
-									Double conceptIdForTerm = conceptForTerm.getConceptId();
+									Integer conceptIdForTerm = conceptForTerm.getConceptId();
 									
 									relatedTerm.setDrugConceptId(conceptIdForTerm);
 									
 									termTable.add(relatedTerm);
 									
-									Double termId = codeGenerator;
+									Integer termId = codeGenerator;
 									
 									TermRelationship termRel = new TermRelationship();
 									termRel.setId(++codeGenerator);
@@ -1052,7 +965,7 @@ public class CDCTables {
 						
 				}
 				
-				//what are we looking for here?  Synonyms, then maybe UNIIs
+				//what are we looking for here?  Synonyms and UNIIs
 //				System.out.println("https://rxnav.nlm.nih.gov/REST/rxcui/" + rxcui + "/allProperties.json?prop=all");
 				if( allProperties != null ) {
 					JSONObject propConceptGroup = (JSONObject) allProperties.get("propConceptGroup");
@@ -1071,13 +984,13 @@ public class CDCTables {
 							synonym.setSource(sourceMap.get("RxNorm"));
 							
 							Concept conceptForTerm = conceptTable.getConcept(rxcui, sourceMap.get("RxNorm"));
-							Double conceptIdForTerm = conceptForTerm.getConceptId();
+							Integer conceptIdForTerm = conceptForTerm.getConceptId();
 							
 							synonym.setDrugConceptId(conceptIdForTerm);
 							
 							termTable.add(synonym);
 							
-							Double synonymId = codeGenerator;							
+							Integer synonymId = codeGenerator;							
 							
 							TermRelationship termRel = new TermRelationship();
 							termRel.setId(++codeGenerator);
@@ -1088,7 +1001,7 @@ public class CDCTables {
 							term2TermTable.add(termRel);
 							
 						}
-// 191107 - Decision to include
+// 191107 - OB: Include
 						else if( propName.equals("UNII_CODE") ) {
 							Term uniiCode = new Term();
 							uniiCode.setId(++codeGenerator);
@@ -1099,15 +1012,15 @@ public class CDCTables {
 							uniiCode.setSource(sourceMap.get("FDA"));
 							
 							Concept conceptForTerm = conceptTable.getConcept(rxcui, sourceMap.get("RxNorm"));
-							Double conceptIdForTerm = conceptForTerm.getConceptId();
+							Integer conceptIdForTerm = conceptForTerm.getConceptId();
 							
 							uniiCode.setDrugConceptId(conceptIdForTerm);
 							
 							termTable.add(uniiCode);
 							
-							Double uniiId = codeGenerator;
+							Integer uniiId = codeGenerator;
 							
-							TermRelationship uniiRel = new TermRelationship();
+							TermRelationship uniiRel = new TermRelationship();  //term-term rel was here all along, i just can't remember these things during meetings
 							uniiRel.setId(++codeGenerator);
 							uniiRel.setTermId1(uniiId);
 							uniiRel.setTermId2(preferredTermId);
@@ -1241,29 +1154,6 @@ public class CDCTables {
 				}
 			}
 		}
-			
-//			Concept parent = conceptTable.getConcept(icd.getCode(), sourceMap.get("ICD"));
-//			for(String childId : icd.getChildren() ) {
-//				System.out.println("children found for " + childId);
-//				Concept child = conceptTable.getConcept(childId, sourceMap.get("ICD"));
-//				if( parent != null && child != null ) {
-//					System.out.println("creating an isa relationship " + child.getPreferredTermId() + " isa " + parent.getPreferredTermId());
-//					if( !concept2ConceptTable.containsPair(child.getConceptId(), "isa", parent.getConceptId()) ) {
-//						ConceptRelationship conRel = new ConceptRelationship();
-//						conRel.setId(++codeGenerator);
-//						conRel.setConceptId1(child.getConceptId());
-//						conRel.setRelationship("isa");
-//						conRel.setConceptId2(parent.getConceptId());
-//						
-//						concept2ConceptTable.add(conRel);
-//					}
-//				}
-//			}
-//		}
-		
-		
-		
-		
 	}
 	
 	private void setAuthoritativeSourceTable() {

@@ -59,14 +59,7 @@ public class NFLISSubstance {
 		
 		return synonymsList;
 	}	
-	
-//	public boolean containsSynonym(String s) {
-//		for(String synonym : synonyms ) {
-//			if( synonym.equalsIgnoreCase(s)) return true;
-//		}
-//		return false;
-//	}
-	
+
 	public ArrayList<String> getRxcuis() {
 		return this.rxcuis;
 	}

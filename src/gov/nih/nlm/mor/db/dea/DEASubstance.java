@@ -54,13 +54,6 @@ public class DEASubstance {
 	public void setSynonyms(ArrayList<String> synonyms) {
 		this.synonyms = synonyms;
 	}
-	
-//	public boolean containsSynonyms(String s) {
-//		for(String synonym : this.synonyms) {
-//			if( synonym.equalsIgnoreCase(s)) return true;
-//		}
-//		return false;
-//	}
 
 	public ArrayList<String> getRxcuis() {
 		return rxcuis;
