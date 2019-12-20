@@ -15,6 +15,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -25,15 +26,20 @@ import javax.net.ssl.HttpsURLConnection;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.json.JSONTokener;
+
+import gov.nih.nlm.mor.RxNorm.RxNormIngredient;
 
 @SuppressWarnings("unused")
 public class SetConfig {
 	
-	final String url = "https://rxnav.nlm.nih.gov/REST/rxcui.json?name=";
+	final String url = "https://rxnavstage.nlm.nih.gov/REST/rxcui.json?name=";
 	final String urlParams = "&srclist=rxnorm&allsrc=0&search=0";
 	
-	final String inUrl = "https://rxnav.nlm.nih.gov/REST/rxcui/";
-	final String inUrlParams = "/related.json?tty=IN";
+	final String inUrl = "https://rxnavstage.nlm.nih.gov/REST/rxcui/";
+	final String inUrlParams = "/related.json?tty=IN+PIN+BN";
+	final String propUrl = "https://rxnav.nlm.nih.gov/REST/rxcui/";
+	final String propUrlParams = "/property.json?propName=UNII_CODE";
 	public ArrayList<String> substances = new ArrayList<String>();
 	public ArrayList<String[]> spellings = new ArrayList<String[]>();
 	private PrintWriter pw = null;
@@ -45,31 +51,110 @@ public class SetConfig {
 	
 	public void run(String filename) {
 		try {
-			pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(new File("./substance-misspellings.txt")),StandardCharsets.UTF_8),true);
+			pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(new File("./unii-coverage-rx.txt")),StandardCharsets.UTF_8),true);
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			System.err.print("Cannot create the printwriter");
 			e.printStackTrace();
 		}		
 		readFile(filename);
-//		ArrayList<String> res = new ArrayList<String>();
-//		for(String cui : substances) {
-//			ArrayList<String> names = returnInNames(cui);
-//			Collections.sort(names);
-//			int size = names.size();
-//			for(int j=0; j < size; j++) {
-//				res.add(names.get(j) + "|" + cui);
-//			}
-//		}
+		for( String substance : substances ) {
+			JSONObject result = null;
+			try {
+				String encodedSubstance = URLEncoder.encode(substance, StandardCharsets.UTF_8.toString());
+				result = getresult(url + encodedSubstance);
+			} catch(Exception e) {
+				e.printStackTrace();
+			}
+			
+			if(result != null ) {
+				ArrayList<String> matchingCodes = new ArrayList<String>();
+				ArrayList<RxNormIngredient> ings = new ArrayList<RxNormIngredient>();
+				JSONObject idGroup = result.getJSONObject("idGroup");
+				if( idGroup != null ) {
+					if(idGroup.has("rxnormId") && !idGroup.isNull("rxnormId")) {
+						JSONArray rxnormId = idGroup.getJSONArray("rxnormId");
+						for(int i=0; i < rxnormId.length(); i++) {
+							String value = rxnormId.getString(i);
+							matchingCodes.add(value);
+						}
+					}
+				}
+				ArrayList<String> uniiCodes = new ArrayList<String>();
+				if(!matchingCodes.isEmpty()) {
+					uniiCodes.clear();
+					for(int i=0; i < matchingCodes.size(); i++) {
+						ings = returnIngs(matchingCodes.get(i));
+						if(!ings.isEmpty()) {
+							for(int j=0; j < ings.size(); j++) {
+								pw.print(ings.get(j).getName() + " (" + matchingCodes.get(i) + ")");
+								if(j + 1 < ings.size()) {
+									pw.print("|");
+								}
+								pw.flush();
+							}
+						}
+						JSONObject uniiResult = null;						
+						try {
+							//https://rxnav.nlm.nih.gov/REST/rxcui/3288/property.json?propName=UNII_CODE
+							String rxcui = matchingCodes.get(i);
+							//System.out.println(propUrl + rxcui + propUrlParams);
+							uniiResult = getresult(propUrl + rxcui + propUrlParams );
+						} catch(Exception e) {
+							e.printStackTrace();
+						}						
+						if(uniiResult != null ) {
+							if(uniiResult.has("propConceptGroup") && !uniiResult.isNull("propConceptGroup") ) {
+								JSONObject propConceptGroup = uniiResult.getJSONObject("propConceptGroup");
+								if(propConceptGroup.has("propConcept") && !propConceptGroup.isNull("propConcept")) {
+									JSONArray propConcept = propConceptGroup.getJSONArray("propConcept");
+									for(int k=0; k < propConcept.length(); k++ ) {
+										JSONObject val = propConcept.getJSONObject(k);
+										String uniiCode = val.getString("propValue");
+										uniiCodes.add(uniiCode);
+									}
+								}
+							}
+						}					
+					}	
+					if(!uniiCodes.isEmpty()) {
+						pw.print("\t");
+						for(int m=0; m < uniiCodes.size(); m++) {
+							pw.print(uniiCodes.get(m) + "|");
+							pw.flush();
+						}
+						pw.flush();
+					}
+					else {
+						pw.print("NO CODE");
+						pw.flush();
+					}
+					pw.println();	
+				}
+				else {
+					pw.println();
+				}
+			}
+			else {
+				pw.println();
+			}
+			
+		}
+		
+		
+		
+		
+		
+
 //		Collections.sort(res);
 //		for( String r : res ) {
 //			System.out.println(r);
 //		}
-		for( String[] spelling : spellings ) {
+//		for( String[] spelling : spellings ) {
 //			if( substance.equalsIgnoreCase("Yellow fever vaccine")) { 
 //				System.out.println("HALT");
 //			}
-			ArrayList<String> cuis = returnRxCodes(spelling[1]);
+//			ArrayList<String> cuis = returnRxCodes(spelling[1]);
 // This will print PINs (e.g., anyhdrous terms) if existing
 //			for(int i=0; i < cuis.size(); i++) {
 //				System.out.print(cuis.get(i));
@@ -77,20 +162,18 @@ public class SetConfig {
 //					System.out.print("|");
 //				}
 //			}
-			for( String cui : cuis ) {
-				ArrayList<String> inCuis = returnInCodes(cui);
-				int size = inCuis.size();
-				for(int j=0; j < size; j++) {
-					pw.println(spelling[1] + "|" + inCuis.get(j) + "|" + spelling[0]);
-				}
-			}
-			pw.flush();
-		}
-		pw.close();
+//			for( String cui : cuis ) {
+//				ArrayList<String> inCuis = returnInCodes(cui);
+//				int size = inCuis.size();
+//				for(int j=0; j < size; j++) {
+//					pw.println(spelling[1] + "|" + inCuis.get(j) + "|" + spelling[0]);
+//				}
+//			}
+			pw.close();
 	}
 	
-	public ArrayList<String> returnInCodes(String cui) {
-		ArrayList<String> codes = new ArrayList<String>();
+	public ArrayList<RxNormIngredient> returnIngs(String cui) {
+		ArrayList<RxNormIngredient> ings = new ArrayList<RxNormIngredient>();
 		
 		JSONObject result = null;
 		try {
@@ -107,16 +190,13 @@ public class SetConfig {
 					JSONArray arr = relatedGroup.getJSONArray("conceptGroup");
 					for(int i=0; i < arr.length(); i++) {
 						JSONObject val = arr.getJSONObject(i);
-						if( val.getString("tty").equals("IN") ) {
+						if( val.getString("tty").equals("IN") || val.getString("tty").equals("PIN") || val.getString("tty").equals("BN") ) {
 							if( val.has("conceptProperties")) {
 								JSONArray conceptProperties = val.getJSONArray("conceptProperties");
 								for(int j=0; j < conceptProperties.length(); j++) {
 									JSONObject o = conceptProperties.getJSONObject(j);
-									if( o.has("rxcui")) {
-										String inCui = o.getString("rxcui");
-										codes.add(inCui);
-									}									
-									
+									RxNormIngredient ing = new RxNormIngredient(o);
+									ings.add(ing);
 								}
 							}
 						}
@@ -124,46 +204,46 @@ public class SetConfig {
 				}
 			}
 		}
-		return codes;
+		return ings;
 	}
 	
-	public ArrayList<String> returnInNames(String cui) {
-		ArrayList<String> names = new ArrayList<String>();
-		
-		JSONObject result = null;
-		try {
-			String cuiUrl = inUrl + cui + inUrlParams;
-			result = getresult(cuiUrl);
-		} catch(Exception e) {
-			e.printStackTrace();
-		}
-		
-		if( result != null ) {
-			if( result.has("relatedGroup")) {
-				JSONObject relatedGroup = result.getJSONObject("relatedGroup");
-				if( relatedGroup.has("conceptGroup")) {
-					JSONArray arr = relatedGroup.getJSONArray("conceptGroup");
-					for(int i=0; i < arr.length(); i++) {
-						JSONObject val = arr.getJSONObject(i);
-						if( val.getString("tty").equals("IN") ) {
-							if( val.has("conceptProperties")) {
-								JSONArray conceptProperties = val.getJSONArray("conceptProperties");
-								for(int j=0; j < conceptProperties.length(); j++) {
-									JSONObject o = conceptProperties.getJSONObject(j);
-									if( o.has("rxcui")) {
-										String inCui = o.getString("name");
-										names.add(inCui);
-									}									
-									
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-		return names;
-	}	
+//	public ArrayList<String> returnInNames(String cui) {
+//		ArrayList<String> names = new ArrayList<String>();
+//		
+//		JSONObject result = null;
+//		try {
+//			String cuiUrl = inUrl + cui + inUrlParams;
+//			result = getresult(cuiUrl);
+//		} catch(Exception e) {
+//			e.printStackTrace();
+//		}
+//		
+//		if( result != null ) {
+//			if( result.has("relatedGroup")) {
+//				JSONObject relatedGroup = result.getJSONObject("relatedGroup");
+//				if( relatedGroup.has("conceptGroup")) {
+//					JSONArray arr = relatedGroup.getJSONArray("conceptGroup");
+//					for(int i=0; i < arr.length(); i++) {
+//						JSONObject val = arr.getJSONObject(i);
+//						if( val.getString("tty").equals("IN") ) {
+//							if( val.has("conceptProperties")) {
+//								JSONArray conceptProperties = val.getJSONArray("conceptProperties");
+//								for(int j=0; j < conceptProperties.length(); j++) {
+//									JSONObject o = conceptProperties.getJSONObject(j);
+//									if( o.has("rxcui")) {
+//										String inCui = o.getString("rxcui");
+//										cuis.add(inCui);
+//									}									
+//									
+//								}
+//							}
+//						}
+//					}
+//				}
+//			}
+//		}
+//		return names;
+//	}	
 	
 	public ArrayList<String> returnRxCodes(String s) {
 		
@@ -208,9 +288,9 @@ public class SetConfig {
 					eof = true;
 				else {
 					line = line.trim();
-//					substances.add(line);
-					String[] pair = line.split("\\|");
-					spellings.add(pair);
+					substances.add(line);
+//					String[] pair = line.split("\\|");
+//					spellings.add(pair);
 				}
 			}
 		} catch (Exception e) {

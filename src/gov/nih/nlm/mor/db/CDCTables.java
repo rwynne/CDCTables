@@ -455,7 +455,7 @@ public class CDCTables {
 				term.setTty(termTypeMap.get("PV"));
 				concept.setConceptId(++codeGenerator);
 				concept.setPreferredTermId(term.getId());
-				concept.setClassType(classTypeMap.get(classTypeMap.get("Class")));
+				concept.setClassType(classTypeMap.get("Class"));
 				concept.setSource(sourceMap.get("ICD"));
 				concept.setSourceId(tcode);
 				icdId = conceptId = codeGenerator;
@@ -1066,7 +1066,7 @@ public class CDCTables {
 			}
 		}
 		
-		System.out.println("[5] Adding misspellings");
+		System.out.println("[5] Adding misspellings - This will take quite some time.");
 		addMisspellings();
 			
 		System.out.println("[7] Associating T-codes to substances");
@@ -1125,7 +1125,7 @@ public class CDCTables {
 					icdChildTerm.setTty(termTypeMap.get("PV"));
 					
 					hierChild = new Concept();
-					hierChild.setClassType("Class");
+					hierChild.setClassType(classTypeMap.get("Class"));
 					hierChild.setPreferredTermId(codeGenerator);
 					hierChild.setConceptId(++codeGenerator);
 					hierChild.setSource(sourceMap.get("ICD"));
