@@ -2,5 +2,9 @@ dist: trusty
 language: java
 sudo: false
 script: "mvn cobertura:cobertura"
+branches:
+  only:
+  - double-msp
+  - /.*/
 after_success:
   - bash <(curl -s https://codecov.io/bash)
