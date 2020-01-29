@@ -30,6 +30,16 @@ public class Term2TermTable {
 		return false;
 	}
 	
+	public ArrayList<TermRelationship> getPairsForLHS(Integer rhsId, String rel) {
+		ArrayList<TermRelationship> rels = new ArrayList<TermRelationship>();
+		for(TermRelationship row :  rows) {
+			if(row.getTermId2().equals(rhsId) && row.getRelationship().equals(rel)) {
+				rels.add(row);
+			}
+		}
+		return rels;
+	}
+	
 	public void print(PrintWriter pw) {
 		/*	[DrugTermTermID] [bigint] NOT NULL,
 	[DrugTermID1] [bigint] NULL,

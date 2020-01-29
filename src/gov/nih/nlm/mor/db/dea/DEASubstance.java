@@ -47,8 +47,17 @@ public class DEASubstance {
 		this.name = name;
 	}
 
-	public ArrayList<String> getSynonyms() {
-		return synonyms;
+	public ArrayList<String> getSynonyms(boolean lower) {
+		ArrayList<String> list = new ArrayList<String>();
+		if(lower) {
+			synonyms.forEach(a -> {
+				list.add(a.toLowerCase());
+			});
+			return list;
+		}
+		else {
+			return this.synonyms;
+		}
 	}
 
 	public void setSynonyms(ArrayList<String> synonyms) {

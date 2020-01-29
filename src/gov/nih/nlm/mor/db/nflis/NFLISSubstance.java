@@ -43,8 +43,17 @@ public class NFLISSubstance {
 		this.name = name;
 	}	
 	
-	public ArrayList<String> getSynonyms() {
-		return this.synonyms;
+	public ArrayList<String> getSynonyms(boolean lower) {
+		ArrayList<String> list = new ArrayList<String>();
+		if(lower) {
+			synonyms.forEach(a -> {
+				list.add(a.toLowerCase());
+			});
+			return list;
+		}
+		else {
+			return this.synonyms;
+		}
 	}
 
 	public ArrayList<String> setSynonyms(String synonymString) {

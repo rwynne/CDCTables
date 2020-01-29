@@ -33,14 +33,18 @@ import gov.nih.nlm.mor.RxNorm.RxNormIngredient;
 @SuppressWarnings("unused")
 public class SetConfig {
 	
-	final String url = "https://rxnavstage.nlm.nih.gov/REST/rxcui.json?name=";
-	final String urlParams = "&srclist=rxnorm&allsrc=0&search=0";
+	// final String url = "https://rxnavstage.nlm.nih.gov/REST/rxcui.json?name=";
+	final String url = "https://rxnavstage.nlm.nih.gov/REST/rxcui/";
+	// final String urlParams = "&srclist=rxnorm&allsrc=0&search=0";
+	final String urlParams = "/related.json?tty=PIN+IN";
 	
 	final String inUrl = "https://rxnavstage.nlm.nih.gov/REST/rxcui/";
 	final String inUrlParams = "/related.json?tty=IN+PIN+BN";
-	final String propUrl = "https://rxnav.nlm.nih.gov/REST/rxcui/";
+	final String propUrl = "https://rxnavstage.nlm.nih.gov/REST/rxcui/";
 	final String propUrlParams = "/property.json?propName=UNII_CODE";
-	public ArrayList<String> substances = new ArrayList<String>();
+	final String uniiUrl = "https://rxnavstage.nlm.nih.gov/REST";	
+	final String uniiUrlParams = "/rxcui.json?idtype=UNII_CODE&id=";
+	public ArrayList<String[]> substances = new ArrayList<String[]>();
 	public ArrayList<String[]> spellings = new ArrayList<String[]>();
 	private PrintWriter pw = null;
 	
@@ -51,95 +55,106 @@ public class SetConfig {
 	
 	public void run(String filename) {
 		try {
-			pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(new File("./unii-coverage-rx.txt")),StandardCharsets.UTF_8),true);
+//			pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(new File("./unii-coverage-rx.txt")),StandardCharsets.UTF_8),true);
+//			pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(new File("./rx-mod-nomod-ing-names.txt")),StandardCharsets.UTF_8),true);
+			pw = new PrintWriter(new OutputStreamWriter(new FileOutputStream(new File("./rx-unii-coverage.txt")),StandardCharsets.UTF_8),true);
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block
 			System.err.print("Cannot create the printwriter");
 			e.printStackTrace();
 		}		
 		readFile(filename);
-		for( String substance : substances ) {
-			JSONObject result = null;
-			try {
-				String encodedSubstance = URLEncoder.encode(substance, StandardCharsets.UTF_8.toString());
-				result = getresult(url + encodedSubstance);
-			} catch(Exception e) {
-				e.printStackTrace();
-			}
+	}
+	
+//		for( String[] substanceCodes : substances ) {
+//			
+//
+//				
+//				
+//				
+//				
+//				
+//				
+//				
+//				
+//				
+//				
+//				
+//				
+//				
+//				ArrayList<String> matchingCodes = new ArrayList<String>();
+//				ArrayList<RxNormIngredient> ings = new ArrayList<RxNormIngredient>();
+//				JSONObject idGroup = result.getJSONObject("idGroup");
+//				if( idGroup != null ) {
+//					if(idGroup.has("rxnormId") && !idGroup.isNull("rxnormId")) {
+//						JSONArray rxnormId = idGroup.getJSONArray("rxnormId");
+//						for(int i=0; i < rxnormId.length(); i++) {
+//							String value = rxnormId.getString(i);
+//							matchingCodes.add(value);
+//						}
+//					}
+//				}
+//				ArrayList<String> uniiCodes = new ArrayList<String>();
+//				if(!matchingCodes.isEmpty()) {
+//					uniiCodes.clear();
+//					for(int i=0; i < matchingCodes.size(); i++) {
+//						ings = returnIngs(matchingCodes.get(i));
+//						if(!ings.isEmpty()) {
+//							for(int j=0; j < ings.size(); j++) {
+//								pw.print(ings.get(j).getName() + " (" + matchingCodes.get(i) + ")");
+//								if(j + 1 < ings.size()) {
+//									pw.print("|");
+//								}
+//								pw.flush();
+//							}
+//						}
+//						JSONObject uniiResult = null;						
+//						try {
+//							//https://rxnav.nlm.nih.gov/REST/rxcui/3288/property.json?propName=UNII_CODE
+//							String rxcui = matchingCodes.get(i);
+//							//System.out.println(propUrl + rxcui + propUrlParams);
+//							uniiResult = getresult(propUrl + rxcui + propUrlParams );
+//						} catch(Exception e) {
+//							e.printStackTrace();
+//						}						
+//						if(uniiResult != null ) {
+//							if(uniiResult.has("propConceptGroup") && !uniiResult.isNull("propConceptGroup") ) {
+//								JSONObject propConceptGroup = uniiResult.getJSONObject("propConceptGroup");
+//								if(propConceptGroup.has("propConcept") && !propConceptGroup.isNull("propConcept")) {
+//									JSONArray propConcept = propConceptGroup.getJSONArray("propConcept");
+//									for(int k=0; k < propConcept.length(); k++ ) {
+//										JSONObject val = propConcept.getJSONObject(k);
+//										String uniiCode = val.getString("propValue");
+//										uniiCodes.add(uniiCode);
+//									}
+//								}
+//							}
+//						}					
+//					}	
+//					if(!uniiCodes.isEmpty()) {
+//						pw.print("\t");
+//						for(int m=0; m < uniiCodes.size(); m++) {
+//							pw.print(uniiCodes.get(m) + "|");
+//							pw.flush();
+//						}
+//						pw.flush();
+//					}
+//					else {
+//						pw.print("NO CODE");
+//						pw.flush();
+//					}
+//					pw.println();	
+//				}
+//				else {
+//					pw.println();
+//				}
+//			}
+//			else {
+//				pw.println();
+//			}
 			
-			if(result != null ) {
-				ArrayList<String> matchingCodes = new ArrayList<String>();
-				ArrayList<RxNormIngredient> ings = new ArrayList<RxNormIngredient>();
-				JSONObject idGroup = result.getJSONObject("idGroup");
-				if( idGroup != null ) {
-					if(idGroup.has("rxnormId") && !idGroup.isNull("rxnormId")) {
-						JSONArray rxnormId = idGroup.getJSONArray("rxnormId");
-						for(int i=0; i < rxnormId.length(); i++) {
-							String value = rxnormId.getString(i);
-							matchingCodes.add(value);
-						}
-					}
-				}
-				ArrayList<String> uniiCodes = new ArrayList<String>();
-				if(!matchingCodes.isEmpty()) {
-					uniiCodes.clear();
-					for(int i=0; i < matchingCodes.size(); i++) {
-						ings = returnIngs(matchingCodes.get(i));
-						if(!ings.isEmpty()) {
-							for(int j=0; j < ings.size(); j++) {
-								pw.print(ings.get(j).getName() + " (" + matchingCodes.get(i) + ")");
-								if(j + 1 < ings.size()) {
-									pw.print("|");
-								}
-								pw.flush();
-							}
-						}
-						JSONObject uniiResult = null;						
-						try {
-							//https://rxnav.nlm.nih.gov/REST/rxcui/3288/property.json?propName=UNII_CODE
-							String rxcui = matchingCodes.get(i);
-							//System.out.println(propUrl + rxcui + propUrlParams);
-							uniiResult = getresult(propUrl + rxcui + propUrlParams );
-						} catch(Exception e) {
-							e.printStackTrace();
-						}						
-						if(uniiResult != null ) {
-							if(uniiResult.has("propConceptGroup") && !uniiResult.isNull("propConceptGroup") ) {
-								JSONObject propConceptGroup = uniiResult.getJSONObject("propConceptGroup");
-								if(propConceptGroup.has("propConcept") && !propConceptGroup.isNull("propConcept")) {
-									JSONArray propConcept = propConceptGroup.getJSONArray("propConcept");
-									for(int k=0; k < propConcept.length(); k++ ) {
-										JSONObject val = propConcept.getJSONObject(k);
-										String uniiCode = val.getString("propValue");
-										uniiCodes.add(uniiCode);
-									}
-								}
-							}
-						}					
-					}	
-					if(!uniiCodes.isEmpty()) {
-						pw.print("\t");
-						for(int m=0; m < uniiCodes.size(); m++) {
-							pw.print(uniiCodes.get(m) + "|");
-							pw.flush();
-						}
-						pw.flush();
-					}
-					else {
-						pw.print("NO CODE");
-						pw.flush();
-					}
-					pw.println();	
-				}
-				else {
-					pw.println();
-				}
-			}
-			else {
-				pw.println();
-			}
-			
-		}
+//		}
+
 		
 		
 		
@@ -169,8 +184,9 @@ public class SetConfig {
 //					pw.println(spelling[1] + "|" + inCuis.get(j) + "|" + spelling[0]);
 //				}
 //			}
-			pw.close();
-	}
+//			pw.close();
+//		}
+//	}
 	
 	public ArrayList<RxNormIngredient> returnIngs(String cui) {
 		ArrayList<RxNormIngredient> ings = new ArrayList<RxNormIngredient>();
@@ -190,7 +206,8 @@ public class SetConfig {
 					JSONArray arr = relatedGroup.getJSONArray("conceptGroup");
 					for(int i=0; i < arr.length(); i++) {
 						JSONObject val = arr.getJSONObject(i);
-						if( val.getString("tty").equals("IN") || val.getString("tty").equals("PIN") || val.getString("tty").equals("BN") ) {
+//						if( val.getString("tty").equals("IN") || val.getString("tty").equals("PIN") || val.getString("tty").equals("BN") ) {
+						if( val.getString("tty").equals("IN") || val.getString("tty").equals("PIN") ) {						
 							if( val.has("conceptProperties")) {
 								JSONArray conceptProperties = val.getJSONArray("conceptProperties");
 								for(int j=0; j < conceptProperties.length(); j++) {
@@ -287,11 +304,31 @@ public class SetConfig {
 				if (line == null)
 					eof = true;
 				else {
-					line = line.trim();
-					substances.add(line);
+					String[] codes = line.split(" ");
+					if(codes != null && codes.length>0) {
+						for(int i=0; i<codes.length; i++) {
+					JSONObject result = null;
+					try {
+						//String encodedSubstance = URLEncoder.encode(substance, StandardCharsets.UTF_8.toString());
+						//result = getresult(url + encodedSubstance);
+						result = getresult(url + codes[i] + urlParams);
+					} catch(Exception e) {
+						e.printStackTrace();
+					}
+					
+					if(result != null ) {
+						ArrayList<RxNormIngredient> ings = returnIngs(codes[i]);
+						ings.forEach(x-> {
+							pw.print(x.getName() + "|");
+							pw.flush();
+						});
 //					String[] pair = line.split("\\|");
 //					spellings.add(pair);
+					}					
+				}						
 				}
+				}
+				pw.println();				
 			}
 		} catch (Exception e) {
 			e.printStackTrace();

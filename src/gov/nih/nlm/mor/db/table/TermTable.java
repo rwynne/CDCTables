@@ -45,6 +45,25 @@ public class TermTable {
 			}
 		}
 		return resultTerm;
+	}
+	
+	public ArrayList<Term> getTermByName(String name) {
+		ArrayList<Term> terms = new ArrayList<Term>();
+		for( Term term : rows ) {
+			if( term.getName().equalsIgnoreCase(name) ) {
+				terms.add(term);
+			}
+		}
+		return terms;
+	}
+	
+	public Term getTermById(Integer id) {
+		for( Term term : rows ) {
+			if( term.getId().equals(id) ) {
+				return term;
+			}
+		}
+		return null;
 	}	
 	
 	public Term getTerm(String sourceId, String type, String source) {
@@ -56,6 +75,36 @@ public class TermTable {
 		}
 		return result;
 	}
+	
+	public ArrayList<Term> getTermsForSource(String name, String rel, String source) {
+		ArrayList<Term> terms = new ArrayList<Term>();
+		for( Term term : rows ) {
+			if(term.getName().toLowerCase().equals(name.toLowerCase()) && term.getTty().equals(rel) && term.getSource().equals(source)) {
+				terms.add(term);
+			}
+		}
+		return terms;
+	}
+	
+	public ArrayList<Term> getTermsByType(String name, String type) {
+		ArrayList<Term> result = new ArrayList<Term>();
+		for( Term term : rows ) {
+			if( term.getName().toLowerCase().equals(name.toLowerCase()) && term.getTty().equals(type)) {
+				result.add(term);
+			}
+		}
+		return result;
+	}	
+	
+//	public ArrayList<Term> getTermsByType(Integer id, String name) {
+//		ArrayList<Term> result = new ArrayList<Term>();
+//		for( Term term : rows ) {
+//			if( term.getName().toLowerCase().equals(name.toLowerCase()) && term.getTty().equals(type)) {
+//				result.add(term);
+//			}
+//		}
+//		return result;
+//	}		
 	
 	public ArrayList<Term> getTerms() {
 		return this.rows;

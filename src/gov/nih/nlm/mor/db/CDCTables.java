@@ -67,8 +67,8 @@ public class CDCTables {
 	private PrintWriter term2termFile = null;
 	private PrintWriter concept2conceptFile = null;
 	
-	private final String allConceptsUrl = "https://rxnav.nlm.nih.gov/REST/allconcepts.json?tty=IN";
-	private final String allClassesUrl = "https://rxnav.nlm.nih.gov/REST/rxclass/allClasses.json?classTypes=ATC1-4";
+	private final String allConceptsUrl = "https://rxnavstage.nlm.nih.gov/REST/allconcepts.json?tty=IN";
+	private final String allClassesUrl = "https://rxnavstage.nlm.nih.gov/REST/rxclass/allClasses.json?classTypes=ATC1-4";
 	
 	private HashMap<String, ArrayList<String>> rxcui2Misspellings = new HashMap<String, ArrayList<String>>();
 	private HashMap<String, String> rxcui2ProperSpelling = new HashMap<String, String>();
@@ -87,6 +87,9 @@ public class CDCTables {
 	
 	private ArrayList<IcdConcept> icdConcepts = new ArrayList<IcdConcept>();
 	private ArrayList<IcdConcept> icdConceptsWithCuis = new ArrayList<IcdConcept>();
+	
+	//I'm guessing this will change if col. 3 starts to vary
+	private HashMap<String, ArrayList<String>> mclMap = new HashMap<String, ArrayList<String>>();
 	
 	private HashMap<String, String> sourceMap = new HashMap<String, String>();
 	private HashMap<String, String> termTypeMap = new HashMap<String, String>();
@@ -127,10 +130,15 @@ public class CDCTables {
 		String tcode2RxPath = "./config/tcode-map.txt";
 		String nflisPath = "./config/nflis-2018-and-2019.txt";
 		String deaPath = "./config/dea-2018.txt";
+		String mclPath = "./config/MCL-terms";
 
 		System.out.println("[1] Reading configuration files and materializing rxcuis");
 		System.out.print("  - from " + cui2MisspellingsPath); 		
 		readFile(cui2MisspellingsPath, "spell");
+		System.out.println(" ...OK");
+		
+		System.out.print("  - from " + mclPath);
+		readFile(mclPath, "mcl");
 		System.out.println(" ...OK");
 		
 		System.out.print("  - from " + icdHierarchy);
@@ -189,6 +197,11 @@ public class CDCTables {
 								String rxcui = values[1];
 								String misspell = values[2];
 								setMisspellingMap(rxname, rxcui, misspell);
+								break;
+							case "mcl":
+								String variant = values[0];
+								String mclSubstance = values[1];
+								setMclMap(variant, mclSubstance);
 								break;
 							case "tcode hierarchy":
 								String parentCode = values[0];
@@ -315,6 +328,21 @@ public class CDCTables {
 		}
 	}
 	
+	private void setMclMap(String variant, String substance) {
+		variant = variant.toLowerCase();
+		substance = substance.toLowerCase();
+		if(mclMap.containsKey(substance)) {
+			ArrayList<String> list = mclMap.get(substance);
+			list.add(variant);
+			mclMap.put(substance, list);
+		}
+		else {
+			ArrayList<String> list = new ArrayList<String>();
+			list.add(variant);
+			mclMap.put(substance, list);
+		}
+	}
+	
 	private void setDeaMap(String scheduleCode, String schedule, String substance, String code, ArrayList<String> synonyms, String isNarcotic) {
 		DEASchedule deaSchedule = new DEASchedule(schedule);
 		DEASubstance deaSubstance = new DEASubstance(code, substance, isNarcotic, synonyms);		
@@ -390,6 +418,7 @@ public class CDCTables {
 				properId = termTable.getTermByName(properName, sourceMap.get("RxNorm")).getId();
 				drugConceptId = termTable.getTermByName(properName, sourceMap.get("RxNorm")).getDrugConceptId();				
 			}
+			else return;
 			final String drugConceptIdFin = drugConceptId;
 			final Term properSpellingFin = properSpelling;
 			final Integer properIdFin = properId;
@@ -554,7 +583,7 @@ public class CDCTables {
 				preferredTerm.setDrugConceptId(concept.getConceptId());
 				termTable.add(preferredTerm);
 				
-				for( String s : substance.getSynonyms()) {
+				for( String s : substance.getSynonyms(false)) {
 					Term synonym = new Term();
 					synonym.setId(++codeGenerator);
 					synonym.setName(s.trim());
@@ -692,7 +721,7 @@ public class CDCTables {
 					concept2ConceptTable.add(conRel);						
 				}
 				
-				for( String s : substance.getSynonyms()) {
+				for( String s : substance.getSynonyms(false)) {
 					Term synonym = new Term();
 					synonym.setId(++codeGenerator);
 					synonym.setName(s.trim());
@@ -795,12 +824,12 @@ public class CDCTables {
 		
 		System.out.println("[3] Collecting edges of ATC classes for isa relations");
 		//collect edges for each concept
-		//https://rxnav.nlm.nih.gov/REST/rxclass/classGraph.json?classId=A&source=ATC1-4
+		//https://rxnavstage.nlm.nih.gov/REST/rxclass/classGraph.json?classId=A&source=ATC1-4
 		ArrayList<Concept> conceptList = conceptTable.getConceptsOfSource(sourceMap.get("ATC"));
 		for( int i=0; i < conceptList.size(); i++ ) {
 			Concept concept = conceptList.get(i);
 
-			String graphUrl = "https://rxnav.nlm.nih.gov/REST/rxclass/classGraph.json?classId=" + concept.getSourceId() + "&source=ATC1-4";
+			String graphUrl = "https://rxnavstage.nlm.nih.gov/REST/rxclass/classGraph.json?classId=" + concept.getSourceId() + "&source=ATC1-4";
 			JSONObject allEdges = null;
 			
 			try {
@@ -873,7 +902,7 @@ public class CDCTables {
 				
 				String rxcui = minConcept.get("rxcui").toString();
 				String name = minConcept.get("name").toString();
-				String type = minConcept.get("tty").toString();				
+				String type = minConcept.get("tty").toString();	
 				
 				Concept concept = new Concept();
 				Term term = new Term();
@@ -904,17 +933,17 @@ public class CDCTables {
 				JSONObject possibleMembers = null;;
 				
 				try {
-					allRelated = getresult("https://rxnav.nlm.nih.gov/REST/rxcui/" + rxcui + "/allrelated.json");
-					allProperties = getresult("https://rxnav.nlm.nih.gov/REST/rxcui/" + rxcui + "/allProperties.json?prop=all");		
-					possibleMembers = getresult("https://rxnav.nlm.nih.gov/REST/rxclass/class/byRxcui.json?rxcui=" + rxcui + "&relaSource=ATC");				
+					allRelated = getresult("https://rxnavstage.nlm.nih.gov/REST/rxcui/" + rxcui + "/allrelated.json");
+					allProperties = getresult("https://rxnavstage.nlm.nih.gov/REST/rxcui/" + rxcui + "/allProperties.json?prop=all");		
+					possibleMembers = getresult("https://rxnavstage.nlm.nih.gov/REST/rxclass/class/byRxcui.json?rxcui=" + rxcui + "&relaSource=ATC");				
 				} catch(IOException e) {
-					System.out.println("https://rxnav.nlm.nih.gov/REST/rxcui/" + rxcui + "/allrelated.json");
-					System.out.println("https://rxnav.nlm.nih.gov/REST/rxcui/" + rxcui + "/allProperties.json?prop=all");
-					System.out.println("https://rxnav.nlm.nih.gov/REST/rxclass/class/byRxcui.json?rxcui=" + rxcui + "&relaSource=ATC");
+					System.out.println("https://rxnavstage.nlm.nih.gov/REST/rxcui/" + rxcui + "/allrelated.json");
+					System.out.println("https://rxnavstage.nlm.nih.gov/REST/rxcui/" + rxcui + "/allProperties.json?prop=all");
+					System.out.println("https://rxnavstage.nlm.nih.gov/REST/rxclass/class/byRxcui.json?rxcui=" + rxcui + "&relaSource=ATC");
 					e.printStackTrace();
 				}
 				
-//				System.out.println("https://rxnav.nlm.nih.gov/REST/rxcui/" + rxcui + "/allrelated.json");
+//				System.out.println("https://rxnavstage.nlm.nih.gov/REST/rxcui/" + rxcui + "/allrelated.json");
 				if( allRelated != null ) {
 					JSONObject allRelatedGroup = (JSONObject) allRelated.get("allRelatedGroup");
 					JSONArray conceptGroup = (JSONArray) allRelatedGroup.get("conceptGroup");
@@ -966,7 +995,7 @@ public class CDCTables {
 				}
 				
 				//what are we looking for here?  Synonyms and UNIIs
-//				System.out.println("https://rxnav.nlm.nih.gov/REST/rxcui/" + rxcui + "/allProperties.json?prop=all");
+//				System.out.println("https://rxnavstage.nlm.nih.gov/REST/rxcui/" + rxcui + "/allProperties.json?prop=all");
 				if( allProperties != null ) {
 					JSONObject propConceptGroup = (JSONObject) allProperties.get("propConceptGroup");
 					JSONArray propConcept = (JSONArray) propConceptGroup.get("propConcept");
@@ -1032,7 +1061,7 @@ public class CDCTables {
 					
 				}
 				
-//				System.out.println("https://rxnav.nlm.nih.gov/REST/rxclass/class/byRxcui.json?rxcui=" + rxcui + "&relaSource=ATC");	
+//				System.out.println("https://rxnavstage.nlm.nih.gov/REST/rxclass/class/byRxcui.json?rxcui=" + rxcui + "&relaSource=ATC");	
 				if( possibleMembers != null ) {
 					if( !possibleMembers.isNull("rxclassDrugInfoList") ) {
 						JSONObject rxclassdrugInfoList = (JSONObject) possibleMembers.get("rxclassDrugInfoList");
@@ -1066,6 +1095,7 @@ public class CDCTables {
 			}
 		}
 		
+		
 		System.out.println("[5] Adding misspellings - This will take quite some time.");
 		addMisspellings();
 			
@@ -1078,6 +1108,108 @@ public class CDCTables {
 		System.out.println("[9] Adding DEA schedules and substances");
 		addDEA();
 		
+		System.out.println("[10] Adding MCL variants not in the ACL");
+		addMCL();
+		
+	}
+	
+	private void addMCL() {
+				
+		for(String substance : mclMap.keySet()) {
+			//does the substance exist in the database?
+			//if not, add it as a PV with the MCL source
+			ArrayList<Term> pvsInDb = termTable.getTermsByType(substance, termTypeMap.get("PV"));
+			ArrayList<Term> insInDb = termTable.getTermsByType(substance, termTypeMap.get("IN"));
+			pvsInDb.addAll(insInDb);
+			
+			if( pvsInDb.isEmpty() ) {
+				System.out.println("MCL is adding local PV: " + substance);
+				
+				Concept concept = new Concept();
+				Term preferredTerm = new Term();
+				
+				preferredTerm.setId(++codeGenerator);
+				preferredTerm.setName(substance);
+				preferredTerm.setSourceId("");  //we don't have source-codes for the MCL
+				preferredTerm.setSource(sourceMap.get("MCL"));
+				preferredTerm.setTty(termTypeMap.get("PV"));
+				
+				concept.setPreferredTermId(preferredTerm.getId());
+				concept.setSource(sourceMap.get("MCL"));
+				concept.setClassType(classTypeMap.get("Substance"));
+				concept.setConceptId(++codeGenerator);
+				
+				preferredTerm.setDrugConceptId(codeGenerator);
+				
+				conceptTable.add(concept);
+				termTable.add(preferredTerm);
+				addVariants(preferredTerm, mclMap.get(substance));
+			}
+			else {
+				for(Term pvTerm : pvsInDb ) {
+					ArrayList<String> variants = mclMap.get(substance);		
+					Integer termId = pvTerm.getId();
+					ArrayList<Term> existingMisspellings = getRelatedTermsForLHS(termId, "MSP");
+					for(Term missTerm : existingMisspellings) {
+						if(variants.contains(missTerm.getName().toLowerCase()) ) {
+							variants.remove(missTerm.getName().toLowerCase());
+						}
+					}
+					if(!variants.isEmpty()) {						
+						addVariants(pvTerm, variants);
+					}
+				}
+			}
+			//if it does, check all variants
+			//add those that do not exist.
+//			else {
+//				substanceInDb = true;
+//			}
+//		}
+//		
+//		if( !substanceInDb ) {
+//			//add all variants as... MSPs
+//			
+		}
+	
+	}
+	
+	private void addVariants(Term term, ArrayList<String> variants) {
+		for(String variant : variants) {
+			Term varTerm = new Term();
+			varTerm.setName(variant);
+			varTerm.setDrugConceptId(Integer.valueOf(term.getDrugConceptId()));
+			varTerm.setId(++codeGenerator);
+			varTerm.setSource(sourceMap.get("Misspelling"));
+			varTerm.setSourceId("");
+			varTerm.setTty(termTypeMap.get("MSP"));
+			
+			termTable.add(varTerm);
+			
+			TermRelationship tRel = new TermRelationship();
+			tRel.setId(++codeGenerator);
+			tRel.setRelationship("MSP");
+			tRel.setTermId1(varTerm.getId());
+			tRel.setTermId2(term.getId());
+			
+			System.out.println("MCL is adding to PV " + term.getName() + " (" + term.getSource() + ") the variant: " + variant);
+			term2TermTable.add(tRel);
+		}
+	}
+	
+	private ArrayList<Term> getRelatedTermsForLHS(Integer termId, String rel) {
+		ArrayList<Term> relatedTerms = new ArrayList<Term>();
+
+		//we want the left-hand side
+		//( termX MSPof known)
+		ArrayList<TermRelationship> rels = term2TermTable.getPairsForLHS(termId, rel);
+		for(TermRelationship tRel : rels) {
+			Integer lhs = tRel.getTermId1();
+			Term term = termTable.getTermById(lhs);
+			relatedTerms.add(term);
+		}
+		
+		return relatedTerms;
 	}
 	
 	private void buildTCodeHierarchy() {
@@ -1157,6 +1289,7 @@ public class CDCTables {
 	}
 	
 	private void setAuthoritativeSourceTable() {
+		//this can all be made configurable if desired
 		Source s1 = new Source();
 		Source s2 = new Source();
 		Source s3 = new Source();
@@ -1164,6 +1297,7 @@ public class CDCTables {
 		Source s5 = new Source();
 		Source s6 = new Source();
 		Source s7 = new Source();
+		Source s8 = new Source();
 		
 		s1.setId(++codeGenerator);
 		s1.setName("RxNorm");
@@ -1193,13 +1327,18 @@ public class CDCTables {
 		s7.setName("FDA");
 		sourceMap.put("FDA", String.valueOf(codeGenerator));
 		
+		s8.setId(++codeGenerator);
+		s8.setName("MCL");
+		sourceMap.put("MCL", String.valueOf(codeGenerator));
+		
 		authoritativeSourceTable.add(s1);
 		authoritativeSourceTable.add(s2);
 		authoritativeSourceTable.add(s3);
 		authoritativeSourceTable.add(s4);
 		authoritativeSourceTable.add(s5);
 		authoritativeSourceTable.add(s6);
-		authoritativeSourceTable.add(s7);				
+		authoritativeSourceTable.add(s7);
+		authoritativeSourceTable.add(s8);
 	}
 	
 	private void setConceptTypeTable() {
