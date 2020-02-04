@@ -10,3 +10,4 @@ term.txt
 term-type.txt
 CDCTables
 jacoco-resources
+/target/
