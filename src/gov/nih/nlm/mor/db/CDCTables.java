@@ -442,7 +442,9 @@ public class CDCTables {
 				properId = properSpelling.getId();
 				drugConceptId = properSpelling.getDrugConceptId();				
 			}
-			else return;
+			else continue;
+// for streams, this is the "same" as continue
+			// else return;
 			final String drugConceptIdFin = drugConceptId;
 			final Term properSpellingFin = properSpelling;
 			final Integer properIdFin = properId;
