@@ -218,9 +218,7 @@ public class CDCTables {
 							case "mcl":
 								String variant = values[0];
 								String mclSubstance = values[1];
-								if(!variant.toLowerCase().equals(mclSubstance.toLowerCase())) {
-									setMclMap(variant, mclSubstance);	
-								}
+								setMclMap(variant, mclSubstance);	
 								break;
 							case "tcode hierarchy":
 								String parentCode = values[0];
