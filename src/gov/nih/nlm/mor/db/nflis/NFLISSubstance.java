@@ -3,13 +3,11 @@ package gov.nih.nlm.mor.db.nflis;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
-
-import javax.net.ssl.HttpsURLConnection;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -24,7 +22,8 @@ public class NFLISSubstance {
 //		this.code = code;  - codes don't exist, don't make use of the phony ones
 		this.name = name;
 		//could do fancy parsing, but for now this is a curation issue
-		this.synonyms = setSynonyms(synonyms);
+//		this.synonyms = setSynonyms(synonyms);
+		this.synonyms = setSynonyms(synonyms, name);
 		setCuis();
 	}
 	
@@ -44,12 +43,90 @@ public class NFLISSubstance {
 		this.name = name;
 	}	
 	
-	public ArrayList<String> getSynonyms() {
-		return this.synonyms;
+	public ArrayList<String> getSynonyms(boolean lower) {
+		ArrayList<String> list = new ArrayList<String>();
+		if(lower) {
+			synonyms.forEach(a -> {
+				list.add(a.toLowerCase());
+			});
+			return list;
+		}
+		else {
+			return this.synonyms;
+		}
 	}
 
-	public ArrayList<String> setSynonyms(String synonymString) {
+	// modified 12-Mar-2020 use this pattern to process multiple synonyms
+	//  synonym string:  pv (syn1; syn2; syn3)
+//	public ArrayList<String> setSynonyms(String synonymString) {
+	public ArrayList<String> setSynonyms(String synonymString, String name) {
 		ArrayList<String> synonymsList = new ArrayList<String>();
+        // could have no synonyms
+		if (synonymString == null || synonymString.trim().length()==0)
+			return synonymsList;
+		// Does string have more than one synomym?
+		int idx = synonymString.indexOf(";");
+		if (idx < 0 || idx == synonymString.length()-1)  // only 1 synonym
+		{
+			if (idx == synonymString.length()-1 && synonymString.length() > 1)
+				synonymsList.add(synonymString.substring(0,synonymString.length()-1));
+			else
+			    synonymsList.add(synonymString.trim());
+		}
+		else {  // handle multiple synonyms
+			String[] synonymArr = synonymString.split(";");
+			for(int i=0; i < synonymArr.length; i++) {
+				String variant = synonymArr[i].trim();
+				if (variant.isEmpty())
+					continue;
+				if (i==0) {
+					// look for patttern "pv (term"
+					String [] tmp1 = variant.split("\\(");
+					String [] tmp2 = variant.split("\\)");
+					String lastChar = variant.substring(variant.length()-1);
+					// non-matching paren?
+					if (tmp1.length > tmp2.length && !lastChar.equals(")")) {
+						int idx2 = variant.indexOf(" (");
+						if (idx2 < 0) {  // didn't find pattern 
+							synonymsList.add(variant);
+						}
+						else {  // split into 2
+							String var1 = variant.substring(0,idx2).trim();
+							if (!synonymsList.contains(var1)  && !var1.equalsIgnoreCase(name))
+								synonymsList.add(var1);
+							String var2 = variant.substring(idx2+2).trim();
+							if (!synonymsList.contains(var2) && !var2.equalsIgnoreCase(name))
+								synonymsList.add(var2);							
+						}
+					}
+					else {  // no mismatched paren
+						synonymsList.add(variant);
+					}
+				}
+				else if (i == synonymArr.length-1) {  //last entry
+					// look for mis-matched paren
+					String [] tmp1 = variant.split("\\(");
+					String [] tmp2 = variant.split("\\)");
+					String lastChar = variant.substring(variant.length()-1);
+					// non-matching paren?
+					if (tmp1.length == tmp2.length && lastChar.equals(")")) {
+						String var1 = variant.substring(0,variant.length()-1).trim();
+						if (!synonymsList.contains(var1)  && !var1.equalsIgnoreCase(name))
+							synonymsList.add(var1);
+					}
+					else {
+						if (!synonymsList.contains(variant) && !variant.equalsIgnoreCase(name))
+							synonymsList.add(variant);
+					}
+				}
+				else {
+					if (!synonymsList.contains(variant) && !variant.equalsIgnoreCase(name))
+						synonymsList.add(variant);
+				}
+			}
+		}
+		
+/*			
 		String[] synonymArr = synonymString.split(";");
 		for(int i=0; i < synonymArr.length; i++) {
 			String synonym = synonymArr[i].trim();
@@ -57,17 +134,10 @@ public class NFLISSubstance {
 				synonymsList.add(synonym);
 			}
 		}
-		
+*/		
 		return synonymsList;
 	}	
-	
-	public boolean containsSynonym(String s) {
-		for(String synonym : synonyms ) {
-			if( synonym.equalsIgnoreCase(s)) return true;
-		}
-		return false;
-	}
-	
+
 	public ArrayList<String> getRxcuis() {
 		return this.rxcuis;
 	}
@@ -112,14 +182,16 @@ public class NFLISSubstance {
 	
 	public static JSONObject getresult(String URLtoRead) throws IOException {
 		URL url;
-		HttpsURLConnection connexion;
+//		HttpsURLConnection connexion;
+		HttpURLConnection connexion;		
 		BufferedReader reader;
 		
 		String line;
 		String result="";
 		url= new URL(URLtoRead);
 	
-		connexion= (HttpsURLConnection) url.openConnection();
+//		connexion= (HttpsURLConnection) url.openConnection();
+		connexion = (HttpURLConnection) url.openConnection();		
 		connexion.setRequestMethod("GET");
 		reader= new BufferedReader(new InputStreamReader(connexion.getInputStream()));	
 		while ((line =reader.readLine())!=null) {
