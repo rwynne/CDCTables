@@ -1,4 +1,4 @@
-# CDCTables [![Build Status](https://travis-ci.org/rwynne/CDCTables.svg?branch=master)](https://travis-ci.org/rwynne/MapRxNormToSnomed) [![codecov](https://codecov.io/gh/rwynne/CDCTables/branch/master/graph/badge.svg)](https://codecov.io/gh/rwynne/CDCTables)
+# CDCTables [![Build Status](https://travis-ci.org/rwynne/CDCTables.svg?branch=master)](https://travis-ci.org/rwynne/CDCTables)
 Pull data from RxNorm and RxClass APIs to produce tables for the CDC opioid database
 Add NFLIS and DEA content of illicit substances, their categories, and synonyms 
 
@@ -58,3 +58,7 @@ The script will pull the source data from the directory it is run
 ```
 mysql --local-infile=1 -u root -p opioid < load_opioid_data.sql
 ```
+## Scripts to read and change data in the opioid database
+There are python scripts to change and read data in the opioid database located in the scripts/Python directory. 
+See the README file for more details
+
